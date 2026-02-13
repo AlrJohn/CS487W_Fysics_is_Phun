@@ -14,7 +14,7 @@ async def root():
     return {"message": "Backend API is active"}
 
 @app.post("/upload-deck")
-async def upload_deck(file: UploadFile = File(...)):
+async def upload_deck(file: UploadFile = File(...)): # arg
     """
     Endpoint for the Host to upload a CSV deck.
     Supports FR-5: Import/Export decks. [cite: 57]
@@ -27,7 +27,9 @@ async def upload_deck(file: UploadFile = File(...)):
     
     # Save the file locally so we can process it [cite: 7]
     with open(file_location, "wb+") as file_object:
-        file_object.write(file.file.read())
+        contents = await file.read()
+        with open(file_location, "wb") as f:
+            f.write(contents)
     
     # Use our deck_manager to validate and return the data
     result = validate_and_parse_csv(file_location)
