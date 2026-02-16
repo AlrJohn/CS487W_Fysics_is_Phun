@@ -4,6 +4,8 @@
 // It's just a clean layout that proves the UI stack is working.
 
 import React from "react";
+import ActiveDeckCard from "../../components/host/ActiveDeckCard.jsx";
+import { Link } from "react-router-dom";
 
 export default function HostHome() {
   return (
@@ -45,6 +47,7 @@ export default function HostHome() {
             <p className="mt-2 text-sm text-slate-300">
               Next step: prompt for Host Code, then create a session and show join code + QR.
             </p>
+            <Link to="/host/session">Session Setup</Link>
 
             <button
               disabled
@@ -81,6 +84,11 @@ export default function HostHome() {
             <li>Stage 1 monitor → Stage 2 monitor → Results → Final + Export</li>
           </ol>
         </div>
+        <div className="mt-6">
+            <ActiveDeckCard />
+        </div>
+
+        
       </main>
     </div>
   );

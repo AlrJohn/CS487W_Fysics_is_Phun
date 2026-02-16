@@ -4,7 +4,8 @@
 
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
+import HostDecks from "./pages/host/HostDecks.jsx";
+import HostSessionSetup from "./pages/host/HostSessionSetup.jsx";
 import HostHome from "./pages/host/HostHome.jsx";
 
 // Placeholders (not implemented yet)
@@ -28,6 +29,9 @@ export default function App() {
 
         {/* Host experience */}
         <Route path="/host" element={<HostHome />} />
+        <Route path="/host/decks" element={<HostDecks />} />
+        <Route path="/host/session" element={<HostSessionSetup />} />
+
 
         {/* Future experiences */}
         <Route path="/join" element={<ComingSoon title="Join (Player/Jury) — Coming Soon" />} />

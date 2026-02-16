@@ -1,5 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 import os
 
 # Import your two separate modules
@@ -7,6 +9,20 @@ from deck_manager import validate_and_parse_csv
 from generate_game_summary import generate_excel_report 
 
 app = FastAPI()
+# CORS: allow the Vite dev server (React) to call this API from the browser.
+# Vite default dev URL is http://localhost:5173
+# If your dev server runs on a different port, update this list.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
