@@ -1,13 +1,20 @@
 // frontend/src/pages/host/HostHome.jsx
-// Step 1 Host placeholder page.
-// This is NOT implementing game logic yet.
-// It's just a clean layout that proves the UI stack is working.
 
 import React from "react";
 import ActiveDeckCard from "../../components/host/ActiveDeckCard.jsx";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function HostHome() {
+  const navigate = useNavigate();
+
+  function navigateToDeckManager() {
+    navigate("/host/decks");
+  }
+
+  function navigateToSessionSetup() {
+    navigate("/host/session");
+  }
+
   return (
     <div className="min-h-screen">
       {/* Top bar */}
@@ -23,21 +30,21 @@ export default function HostHome() {
             </div>
           </div>
 
-          <a
+          {/* Use Link to avoid full page reload */}
+          <Link
             className="text-sm text-slate-300 hover:text-white underline underline-offset-4"
-            href="/join"
+            to="/join"
           >
             Go to Join Page (later)
-          </a>
+          </Link>
         </div>
       </header>
 
       {/* Main content */}
       <main className="mx-auto max-w-5xl px-4 py-8">
-        <h1 className="text-2xl font-semibold">Host Dashboard (Step 1)</h1>
+        <h1 className="text-2xl font-semibold">Host Dashboard</h1>
         <p className="mt-2 text-slate-300">
-          This is a placeholder to confirm React + Tailwind + routing work.
-          Next step will add the Host flow: Host Code → Create Session → Join Code/QR → Lobby.
+          Host flow: Session Setup → Create Session → Join Code/QR → Lobby → Run game.
         </p>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -45,16 +52,14 @@ export default function HostHome() {
           <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
             <h2 className="text-lg font-semibold">Create Session</h2>
             <p className="mt-2 text-sm text-slate-300">
-              Next step: prompt for Host Code, then create a session and show join code + QR.
+              Configure timers and options, then create a session (join code + host URL).
             </p>
-            <Link to="/host/session">Session Setup</Link>
 
             <button
-              disabled
-              className="mt-4 w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 opacity-60"
-              title="Enabled in the next step"
+              onClick={navigateToSessionSetup}
+              className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
             >
-              Create New Session (next step)
+              Go to Session Setup
             </button>
           </section>
 
@@ -62,15 +67,14 @@ export default function HostHome() {
           <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
             <h2 className="text-lg font-semibold">Decks (CSV)</h2>
             <p className="mt-2 text-sm text-slate-300">
-              Next step: Host can import/list/select decks (CSV), before starting the game.
+              Upload a CSV deck, preview it, then set it as the Active Deck.
             </p>
 
             <button
-              disabled
-              className="mt-4 w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 opacity-60"
-              title="Enabled in the next step"
+              onClick={navigateToDeckManager}
+              className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
             >
-              Open Deck Manager (next step)
+              Open Deck Manager
             </button>
           </section>
         </div>
@@ -78,17 +82,16 @@ export default function HostHome() {
         <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-5">
           <h2 className="text-lg font-semibold">Planned Host Flow</h2>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-300">
-            <li>Enter Host Code</li>
+            <li>Session Setup (timers, options)</li>
             <li>Create Session → display Join Code + Join URL + QR</li>
             <li>Lobby: roster updates + assign Jury (min 1) + Start Game</li>
-            <li>Stage 1 monitor → Stage 2 monitor → Results → Final + Export</li>
+            <li>Stage 1 → Stage 2 → Results → Final + Export</li>
           </ol>
         </div>
-        <div className="mt-6">
-            <ActiveDeckCard />
-        </div>
 
-        
+        <div className="mt-6">
+          <ActiveDeckCard />
+        </div>
       </main>
     </div>
   );

@@ -3,7 +3,6 @@
 */
 @import "tailwindcss";
 
-/* Optional: a tiny bit of global polish */
 :root {
   color-scheme: dark;
 }
