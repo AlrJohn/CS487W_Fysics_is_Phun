@@ -13,6 +13,8 @@ import shutil
 import os
 import uuid
 
+load_dotenv()
+
 app = FastAPI()
 # CORS: allow the Vite dev server (React) to call this API from the browser.
 # Vite default dev URL is http://localhost:5173
