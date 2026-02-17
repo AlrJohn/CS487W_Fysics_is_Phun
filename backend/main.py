@@ -1,17 +1,28 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-
-import os
-
-# Import your two separate modules
+from typing import List, Optional
+from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 from deck_manager import validate_and_parse_csv
-from generate_game_summary import generate_excel_report 
+from generate_game_summary import generate_excel_report
+
+import shutil
+import os
+import uuid
 
 app = FastAPI()
 # CORS: allow the Vite dev server (React) to call this API from the browser.
 # Vite default dev URL is http://localhost:5173
 # If your dev server runs on a different port, update this list.
+
+# Ensure folders exist before mounting
+if not os.path.exists("assets"): os.makedirs("assets")
+if not os.path.exists("decks"): os.makedirs("decks")
+
+# This makes the images accessible at http://localhost:8000/assets/saturn.jpg
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -30,23 +41,73 @@ async def root():
     return {"message": "Backend API is active"}
 
 @app.post("/upload-deck")
-async def upload_deck(file: UploadFile = File(...)): # arg
-    """
-    Endpoint for the Host to upload a CSV deck.
-    Supports FR-5: Import/Export decks. [cite: 57]
-    """
-    # Create the 'decks' folder if it doesn't exist
-    if not os.path.exists("decks"):
-        os.makedirs("decks")
-        
-    file_location = f"decks/{file.filename}"
+async def upload_deck(
+    file: UploadFile = File(...), 
+    images: Optional[List[UploadFile]] = File(None)
+):
+    # 1. Save the CSV as you did before
+    if not os.path.exists("decks"): os.makedirs("decks")
+    csv_path = f"decks/{file.filename}"
+    with open(csv_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # 2. Save Images to /assets
+    if not os.path.exists("assets"): os.makedirs("assets")
+    if images:
+        for image in images:
+            image_path = f"assets/{image.filename}"
+            with open(image_path, "wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+
+    # 3. Parse the CSV (passing the assets folder to check links)
+    result = validate_and_parse_csv(csv_path)
+    return {"deck_id": file.filename, "questions": result}
+
+# Temporary storage for active games
+active_sessions = {}
+
+class SessionRequest(BaseModel):
+    deck_id: str
+
+@app.post("/create-session")
+async def create_session(request: SessionRequest):
+    # Use the deck_id from the request body
+    deck_id = request.deck_id
     
-    # Save the file locally so we can process it [cite: 7]
-    with open(file_location, "wb+") as file_object:
-        contents = await file.read()
-        with open(file_location, "wb") as f:
-            f.write(contents)
+    room_code = str(uuid.uuid4())[:4].upper()
     
-    # Use our deck_manager to validate and return the data
-    result = validate_and_parse_csv(file_location)
-    return result
+    active_sessions[room_code] = {
+        "deck_id": deck_id,
+        "players": [],
+        "status": "lobby"
+    }
+    
+    return {"room_code": room_code}
+
+# A simple model to handle the incoming player data
+class JoinRequest(BaseModel):
+    room_code: str
+    player_name: str
+
+@app.post("/join-session")
+async def join_session(request: JoinRequest):
+    """
+    Allows a player to join a lobby using a 4-character room code.
+    """
+    code = request.room_code.upper()
+    
+    # 1. Check if the room exists in our active_sessions dictionary
+    if code not in active_sessions:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    # 2. Check if the game is already started
+    if active_sessions[code]["status"] != "lobby":
+        raise HTTPException(status_code=400, detail="Game already in progress")
+    
+    # 3. Add the player to the list
+    active_sessions[code]["players"].append(request.player_name)
+    
+    return {
+        "message": f"Welcome {request.player_name}!",
+        "current_players": active_sessions[code]["players"]
+    }
