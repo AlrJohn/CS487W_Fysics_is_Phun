@@ -1,6 +1,13 @@
 # Assets (user stored)
 assets/
 
+# Uploaded decks / server-stored data
+decks/*
+!decks/sample_deck.csv
+data/
+*.csv
+*.xlsx
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -174,12 +181,6 @@ venv.bak/
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Uploaded decks / server-stored data
-decks/
-data/
-*.csv
-*.xlsx
 
 # Python cache
 __pycache__/
