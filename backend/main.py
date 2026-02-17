@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from deck_manager import validate_and_parse_csv
 from generate_game_summary import generate_excel_report
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from typing import List, Optional
 
 import shutil
 import os
@@ -43,26 +45,39 @@ async def root():
 @app.post("/upload-deck")
 async def upload_deck(
     file: UploadFile = File(...), 
-    images: Optional[List[UploadFile]] = File(None)
+    images: Optional[List[UploadFile]] = None 
 ):
-    # 1. Save the CSV as you did before
-    if not os.path.exists("decks"): os.makedirs("decks")
-    csv_path = f"decks/{file.filename}"
-    with open(csv_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        # 1. Create folders if they don't exist
+        if not os.path.exists("decks"): os.makedirs("decks")
+        if not os.path.exists("assets"): os.makedirs("assets")
 
-    # 2. Save Images to /assets
-    if not os.path.exists("assets"): os.makedirs("assets")
-    if images:
-        for image in images:
-            image_path = f"assets/{image.filename}"
-            with open(image_path, "wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
+        # 2. Save the CSV
+        csv_path = f"decks/{file.filename}"
+        with open(csv_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    # 3. Parse the CSV (passing the assets folder to check links)
-    result = validate_and_parse_csv(csv_path)
-    return {"deck_id": file.filename, "questions": result}
+        # 3. Save Images only if they exist
+        if images:
+            for img in images:
+                if img.filename:
+                    img_path = f"assets/{img.filename}"
+                    with open(img_path, "wb") as buffer:
+                        shutil.copyfileobj(img.file, buffer)
 
+        # 4. Parse the CSV
+        # We wrap this in a sub-try so we can tell if the CSV parser is the culprit
+        try:
+            result = validate_and_parse_csv(csv_path)
+        except Exception as parse_error:
+            return {"deck_id": file.filename, "error": f"CSV Parse Failed: {str(parse_error)}"}
+        
+        return {"deck_id": file.filename, "questions": result}
+
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+        return {"error": str(e)}
+    
 # Temporary storage for active games
 active_sessions = {}
 
@@ -110,4 +125,17 @@ async def join_session(request: JoinRequest):
     return {
         "message": f"Welcome {request.player_name}!",
         "current_players": active_sessions[code]["players"]
+    }
+
+@app.get("/session-status/{room_code}")
+async def get_session_status(room_code: str):
+    """Returns the current list of players and game status for a specific room."""
+    code = room_code.upper()
+    if code not in active_sessions:
+        raise HTTPException(status_code=404, detail="Room not found")
+    
+    return {
+        "room_code": code,
+        "status": active_sessions[code]["status"],
+        "players": active_sessions[code]["players"]
     }
