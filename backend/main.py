@@ -6,10 +6,12 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from deck_manager import validate_and_parse_csv
 from generate_game_summary import generate_excel_report
-
+from dotenv import load_dotenv
 import shutil
 import os
 import uuid
+
+load_dotenv()
 
 app = FastAPI()
 # CORS: allow the Vite dev server (React) to call this API from the browser.
