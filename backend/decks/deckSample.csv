@@ -1,7 +1,0 @@
-Question_ID,Question_Text,Correct_Answer,Predefined_Fake
-1,What is the SI unit of force?,Newton,Joule
-2,What is the acceleration due to gravity on Earth (approx.)?,9.8 m/s^2,9.8 km/s^2
-3,What particle has a negative electric charge?,Electron,Proton
-4,What is the speed of light in vacuum (approx.)?,3.0×10^8 m/s,3.0×10^6 m/s
-5,What is the formula for kinetic energy?,KE = 1/2 m v^2,KE = m v
-6,What is the SI unit of electric current?,Ampere,Volt

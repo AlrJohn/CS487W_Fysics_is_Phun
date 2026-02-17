@@ -175,6 +175,16 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# Uploaded decks / server-stored data
+decks/
+data/
+*.csv
+*.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
+
 # Pyre type checker
 .pyre/
 
