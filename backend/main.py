@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -8,12 +8,14 @@ from deck_manager import validate_and_parse_csv
 from generate_game_summary import generate_excel_report
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from typing import List, Optional
+from dotenv import load_dotenv
+load_dotenv()
+from host_auth import validate_host_code
 
 import shutil
 import os
 import uuid
 
-load_dotenv()
 
 app = FastAPI()
 # CORS: allow the Vite dev server (React) to call this API from the browser.
@@ -38,16 +40,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def require_host(x_host_code: str = Header(None, alias="X-Host-Code")):
+    """
+    Simple API-key gate:
+    - frontend sends: X-Host-Code: <code>
+    - backend checks against HOST_CODE in .env
+    """
+    if not validate_host_code(x_host_code):
+        raise HTTPException(status_code=401, detail="Invalid or missing host code")
+    return True
 
 @app.get("/")
 async def root():
     """Verify the server is alive."""
     return {"message": "Backend API is active"}
 
+@app.get("/host/verify")
+async def host_verify(_ok: bool = Depends(require_host)):
+    """
+    Returns 200 only if X-Host-Code is correct.
+    Frontend uses this to validate the code during "login".
+    """
+    return {"ok": True}
+
 @app.post("/upload-deck")
 async def upload_deck(
     file: UploadFile = File(...), 
-    images: Optional[List[UploadFile]] = None 
+    images: Optional[List[UploadFile]] = None,
+
+    _ok: bool = Depends(require_host), #protected endpoint
 ):
     try:
         # 1. Create folders if they don't exist
@@ -141,3 +162,9 @@ async def get_session_status(room_code: str):
         "status": active_sessions[code]["status"],
         "players": active_sessions[code]["players"]
     }
+
+class HostLoginRequest(BaseModel):
+    host_code: str
+
+
+
