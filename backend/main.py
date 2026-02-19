@@ -8,6 +8,7 @@ from deck_manager import validate_and_parse_csv
 from generate_game_summary import generate_excel_report
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from typing import List, Optional
+import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 from host_auth import validate_host_code
@@ -25,6 +26,18 @@ app = FastAPI()
 # Ensure folders exist before mounting
 if not os.path.exists("assets"): os.makedirs("assets")
 if not os.path.exists("decks"): os.makedirs("decks")
+
+#
+class QuestionModel(BaseModel):
+    Question_ID: str
+    Question_Text: str
+    Correct_Answer: str
+    Predefined_Fake: str
+    Image_Link: Optional[str] = ""
+
+class CreateDeckRequest(BaseModel):
+    filename: str  # e.g., "science_quiz.csv"
+    questions: List[QuestionModel]
 
 # This makes the images accessible at http://localhost:8000/assets/saturn.jpg
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
@@ -162,6 +175,77 @@ async def get_session_status(room_code: str):
         "status": active_sessions[code]["status"],
         "players": active_sessions[code]["players"]
     }
+
+@app.get("/decks")
+async def list_decks(_ok: bool = Depends(require_host)):
+    """
+    Returns a list of all CSV files in the /decks folder.
+    Use this to show a 'Library' view.
+    """
+    if not os.path.exists("decks"):
+        return {"decks": []}
+    
+    files = [f for f in os.listdir("decks") if f.endswith(".csv")]
+    return {"decks": files}
+
+@app.get("/decks/{filename}")
+async def get_deck_details(filename: str, _ok: bool = Depends(require_host)):
+    """
+    Parses a specific CSV and returns the JSON data.
+    Useful for 'Edit Mode' in the frontend.
+    """
+    file_path = f"decks/{filename}"
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="Deck file not found")
+    
+    result = validate_and_parse_csv(file_path)
+    return result
+
+@app.post("/save-deck")
+async def save_new_deck(deck_data: CreateDeckRequest, _ok: bool = Depends(require_host)):
+    """
+    Allows creation a brand new CSV from a JSON array or update an existing one.
+    """
+    try:
+        # Ensure filename ends in .csv
+        fname = deck_data.filename if deck_data.filename.endswith(".csv") else f"{deck_data.filename}.csv"
+        file_path = f"decks/{fname}"
+
+        # Convert list of Pydantic models to a list of dicts
+        data = [q.dict() for q in deck_data.questions]
+        
+        # Create DataFrame and save to CSV
+        df = pd.DataFrame(data)
+        df.to_csv(file_path, index=False)
+        
+        return {"message": "Deck saved successfully", "filename": fname}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save deck: {str(e)}")
+
+@app.delete("/decks/{filename}")
+async def delete_deck(filename: str, _ok: bool = Depends(require_host)):
+    """
+    Deletes a deck file.
+    """
+    file_path = f"decks/{filename}"
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"message": f"Deleted {filename}"}
+    else:
+        raise HTTPException(status_code=404, detail="File not found")
+
+@app.post("/upload-asset")
+async def upload_asset(file: UploadFile = File(...), _ok: bool = Depends(require_host)):
+    """
+    A dedicated endpoint for just uploading an image. 
+    Use this when a user adds an image to a specific question.
+    """
+    file_path = f"assets/{file.filename}"
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Return the filename for storing it in the 'Image_Link' field of the CSV
+    return {"filename": file.filename, "url": f"/assets/{file.filename}"}
 
 class HostLoginRequest(BaseModel):
     host_code: str
