@@ -19,10 +19,7 @@
 
 import React, { useMemo, useState } from "react";
 import {
-  uploadDeckCsv,
-  createDeckApi,
-  defaultDeckNameFromFile,
-} from "../../api/decks";
+  uploadDeckCsv} from "../../api/decks";
 import { downloadTextFile } from "../../utils/download";
 import { useDeck } from "../../state/DeckContext.jsx";
 
@@ -31,6 +28,7 @@ const REQUIRED_COLUMNS = [
   "Question_Text",
   "Correct_Answer",
   "Predefined_Fake",
+  "Image_Link (optional)",
 ];
 
 function buildCsvTemplate() {
@@ -71,7 +69,6 @@ function parseUploadResponse(uploadRes) {
 
   const deckId = payload.deck_id || null;
   const q = payload.questions;
-  console.log("Parsing upload response:", { payload, q });
   if (!q || typeof q !== "object") {
     return {
       status: "error",
@@ -160,9 +157,11 @@ export default function DeckUploadCard() {
 
     // 1) Upload CSV (and optional images)
     const uploadRes = await uploadDeckCsv(file, imageFiles);
+    console.log("Upload response:", uploadRes);
     setResult(uploadRes);
 
     const parsed = parseUploadResponse(uploadRes);
+    console.log("Parsed upload response:", parsed);
 
     // Stop if upload failed
     if (!uploadRes.ok || parsed.status !== "success") {
@@ -174,63 +173,7 @@ export default function DeckUploadCard() {
     setUploadedDeckPreview(parsed.questions);
     setUploadedDeckName(file.name);
 
-    // 2) Attempt persistence (optional, backend may not have /decks yet)
-    // This should NEVER crash the upload UI.
-    try {
-      const deckName = defaultDeckNameFromFile(file);
-      const createRes = await createDeckApi({
-        name: deckName,
-        questions: parsed.questions,
-      });
 
-      // If backend doesn't have /decks yet, show a friendly note and keep going.
-      if (!createRes.ok) {
-        const notImplemented = [404, 405, 501].includes(createRes.status);
-        setPersistNote(
-          notImplemented
-            ? "Server persistence is not available yet (/decks not implemented). Upload + preview still works."
-            : `Server persistence failed (HTTP ${createRes.status}). Upload + preview still works.`
-        );
-
-        // Also include create result in debug panel
-        setResult({
-          ok: uploadRes.ok,
-          status: uploadRes.status,
-          data: {
-            upload: uploadRes.data,
-            create: createRes.data,
-          },
-          error: createRes.error,
-        });
-
-        setBusy(false);
-        return;
-      }
-
-      setPersistNote("Deck saved on server successfully.");
-
-      // Include create response in debug panel
-      setResult({
-        ok: createRes.ok,
-        status: createRes.status,
-        data: {
-          upload: uploadRes.data,
-          create: createRes.data,
-        },
-        error: createRes.error,
-      });
-    } catch (e) {
-      setPersistNote("Server persistence not available yet. Upload + preview still works.");
-      setResult({
-        ok: uploadRes.ok,
-        status: uploadRes.status,
-        data: {
-          upload: uploadRes.data,
-          create: { status: "skipped", message: "Create deck not available yet." },
-        },
-        error: null,
-      });
-    }
 
     setBusy(false);
   }
@@ -350,12 +293,7 @@ export default function DeckUploadCard() {
                     Parsed {uploadedDeckPreview?.length || 0} question(s).
                   </div>
 
-                  {persistNote && (
-                    <div className="mt-2 text-xs text-slate-200">
-                      <span className="font-semibold">Server Save:</span>{" "}
-                      <span className="text-amber-200">{persistNote}</span>
-                    </div>
-                  )}
+  
                 </div>
 
                 <button

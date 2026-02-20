@@ -36,7 +36,7 @@ class QuestionModel(BaseModel):
     Image_Link: Optional[str] = ""
 
 class CreateDeckRequest(BaseModel):
-    filename: str  # e.g., "science_quiz.csv"
+    name: str  # e.g., "science_quiz.csv"
     questions: List[QuestionModel]
 
 # This makes the images accessible at http://localhost:8000/assets/saturn.jpg
@@ -185,8 +185,11 @@ async def list_decks(_ok: bool = Depends(require_host)):
     if not os.path.exists("decks"):
         return {"decks": []}
     
-    files = [f for f in os.listdir("decks") if f.endswith(".csv")]
-    return {"decks": files}
+    filenames = [f for f in os.listdir("decks") if f.endswith(".csv")]
+
+    # for i, f in enumerate(filenames):
+    #     filenames[i] = pd.read_csv(f"decks/{f}") #
+    return {"decks": filenames}
 
 @app.get("/decks/{filename}")
 async def get_deck_details(filename: str, _ok: bool = Depends(require_host)):
@@ -199,7 +202,8 @@ async def get_deck_details(filename: str, _ok: bool = Depends(require_host)):
         raise HTTPException(status_code=404, detail="Deck file not found")
     
     result = validate_and_parse_csv(file_path)
-    return result
+
+    return {"deck_id": filename, "questions": result}
 
 @app.post("/save-deck")
 async def save_new_deck(deck_data: CreateDeckRequest, _ok: bool = Depends(require_host)):
@@ -208,7 +212,7 @@ async def save_new_deck(deck_data: CreateDeckRequest, _ok: bool = Depends(requir
     """
     try:
         # Ensure filename ends in .csv
-        fname = deck_data.filename if deck_data.filename.endswith(".csv") else f"{deck_data.filename}.csv"
+        fname = deck_data.name if deck_data.name.endswith(".csv") else f"{deck_data.name}.csv"
         file_path = f"decks/{fname}"
 
         # Convert list of Pydantic models to a list of dicts
@@ -218,7 +222,7 @@ async def save_new_deck(deck_data: CreateDeckRequest, _ok: bool = Depends(requir
         df = pd.DataFrame(data)
         df.to_csv(file_path, index=False)
         
-        return {"message": "Deck saved successfully", "filename": fname}
+        return {"status": "success", "filename": fname}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save deck: {str(e)}")
 

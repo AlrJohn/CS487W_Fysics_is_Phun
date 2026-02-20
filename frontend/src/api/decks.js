@@ -57,12 +57,16 @@ export function listDecksApi() {
   return httpGet("/decks", hostHeaders());
 }
 
+export function getDeckDetailApi(filename) {
+  return httpGet(`/decks/${filename}`, hostHeaders());
+}
+
 /**
  * Future: persist a deck to the backend (makeshift DB).
  * Safe to call later once /decks exists.
  */
-export function createDeckApi(payload) {
-  return httpPostJson("/decks", payload, hostHeaders());
+export function saveDeckApi(payload) {
+  return httpPostJson("/save-deck", payload, hostHeaders());
 }
 
 /**
