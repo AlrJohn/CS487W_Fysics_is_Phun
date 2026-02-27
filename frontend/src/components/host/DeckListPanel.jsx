@@ -14,6 +14,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { listDecksApi, getDeckDetailApi } from "../../api/decks.js";
 import { useDeck } from "../../state/DeckContext.jsx";
+import { buildUrl } from "../../api/httpClient";
 
 /**
  * Given a deck detail object from backend:
@@ -33,12 +34,13 @@ function getDeckTitle(deck, idx) {
 }
 
 export default function DeckListPanel() {
-  const { setActiveDeck } = useDeck();
+  const { setActiveDeck, activeDeck } = useDeck();
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [decks, setDecks] = useState([]); // array of deck detail objects
   const [selectedDeck, setSelectedDeck] = useState(null);
+  const [imageErrors, setImageErrors] = useState({}); // track failed image loads
 
   async function loadDecks() {
     setBusy(true);
@@ -109,6 +111,9 @@ export default function DeckListPanel() {
   }
 
   function onSetActive(deck) {
+    // if already active, do nothing
+    if (activeDeck?.deckId === deck?.deck_id) return;
+
     const questionsArray = getQuestionsArray(deck);
 
     setActiveDeck({
@@ -118,6 +123,10 @@ export default function DeckListPanel() {
       uploadedAt: Date.now(),
       deckId: deck?.deck_id,
     });
+  }
+
+  function handleImageError(questionId) {
+    setImageErrors((prev) => ({ ...prev, [questionId]: true }));
   }
 
   const selectedQuestions = useMemo(() => getQuestionsArray(selectedDeck), [selectedDeck]);
@@ -184,8 +193,16 @@ export default function DeckListPanel() {
 
                     <button
                       onClick={() => onSetActive(deck)}
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
-                      title="Sets this as Active Deck for later session setup"
+                      disabled={activeDeck?.deckId === deck?.deck_id}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold
+                        ${activeDeck?.deckId === deck?.deck_id
+                          ? "bg-slate-600 text-slate-300 cursor-not-allowed"
+                          : "bg-emerald-600 text-white hover:bg-emerald-500"}`}
+                      title={
+                        activeDeck?.deckId === deck?.deck_id
+                          ? "This deck is already active"
+                          : "Sets this as Active Deck for later session setup"
+                      }
                     >
                       Set Active
                     </button>
@@ -231,6 +248,7 @@ export default function DeckListPanel() {
                           <th className="px-3 py-2 font-semibold">Question_Text</th>
                           <th className="px-3 py-2 font-semibold">Correct_Answer</th>
                           <th className="px-3 py-2 font-semibold">Predefined_Fake</th>
+                          <th className="px-3 py-2 font-semibold">Image</th>
                         </tr>
                       </thead>
                       <tbody className="text-slate-200">
@@ -245,6 +263,30 @@ export default function DeckListPanel() {
                             </td>
                             <td className="px-3 py-2 align-top whitespace-pre-wrap">
                               {q.Predefined_Fake ?? ""}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {q.Image_Link ? (
+                                imageErrors[q.Question_ID] ? (
+                                  <div className="text-xs text-rose-400 break-all">
+                                    <div>Failed to load</div>
+                                    <div className="mt-1 font-mono text-rose-300">{q.Image_Link}</div>
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={
+                                      q.Image_Link.startsWith("http")
+                                        ? q.Image_Link
+                                        : buildUrl(q.Image_Link)
+                                    }
+                                    alt={`q${q.Question_ID}`}
+                                    onError={() => handleImageError(q.Question_ID)}
+                                    className="max-h-12 max-w-16 rounded cursor-pointer hover:ring-2 hover:ring-indigo-500"
+                                    title="Click to view full image"
+                                  />
+                                )
+                              ) : (
+                                <span className="text-slate-400 text-xs">No image</span>
+                              )}
                             </td>
                           </tr>
                         ))}

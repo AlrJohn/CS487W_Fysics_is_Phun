@@ -76,3 +76,17 @@ export function defaultDeckNameFromFile(file) {
   if (!file?.name) return "New Deck";
   return file.name.replace(/\.csv$/i, "");
 }
+
+/**
+ * Upload a single image asset to the server. Used by the create-deck
+ * UI when the host attaches pictures to individual questions.
+ *
+ * Backend returns { filename, url } where `url` is the path you can store
+ * in the question's Image_Link field.
+ */
+export async function uploadAsset(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return httpPostForm("/upload-asset", formData, hostHeaders());
+}
