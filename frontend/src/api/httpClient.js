@@ -97,3 +97,24 @@ export async function httpPostJson(path, body, extraHeaders = {}) {
   }
 }
 
+/**
+ * DELETE helper.
+ * @param {string} path
+ * @param {object} extraHeaders optional additional headers
+ */
+export async function httpDelete(path, extraHeaders = {}) {
+  const url = buildUrl(path);
+  try {
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        ...extraHeaders,
+      },
+    });
+    const data = await parseResponse(res);
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    return { ok: false, status: 0, data: null, error: err?.message || String(err) };
+  }
+}
+

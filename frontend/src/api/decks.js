@@ -10,7 +10,7 @@
  * - etc.
  */
 
-import { httpGet, httpPostForm, httpPostJson } from "./httpClient";
+import { httpGet, httpPostForm, httpPostJson, httpDelete } from "./httpClient";
 import { getHostCode } from "../utils/hostAuth";
 
 /**
@@ -75,6 +75,15 @@ export function saveDeckApi(payload) {
 export function defaultDeckNameFromFile(file) {
   if (!file?.name) return "New Deck";
   return file.name.replace(/\.csv$/i, "");
+}
+
+/**
+ * Delete a deck file on the server.
+ * @param {string} filename
+ */
+export function deleteDeckApi(filename) {
+  if (!filename) return Promise.resolve({ ok: false, status: 400, data: null, error: "No filename" });
+  return httpDelete(`/decks/${filename}`, hostHeaders());
 }
 
 /**

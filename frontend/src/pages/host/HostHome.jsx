@@ -31,12 +31,12 @@ export default function HostHome() {
           </div>
 
           {/* Use Link to avoid full page reload */}
-          <Link
+          <button
+            onClick={() => window.open("/join", "_blank")}
             className="text-sm text-slate-300 hover:text-white underline underline-offset-4"
-            to="/join"
           >
-            Go to Join Page (later)
-          </Link>
+            Test Join Page ↗
+          </button>
         </div>
       </header>
 

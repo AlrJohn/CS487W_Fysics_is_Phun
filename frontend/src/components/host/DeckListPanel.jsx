@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
-import { listDecksApi, getDeckDetailApi } from "../../api/decks.js";
+import { listDecksApi, getDeckDetailApi, deleteDeckApi } from "../../api/decks.js";
 import { useDeck } from "../../state/DeckContext.jsx";
 import { buildUrl } from "../../api/httpClient";
 
@@ -129,6 +129,24 @@ export default function DeckListPanel() {
     setImageErrors((prev) => ({ ...prev, [questionId]: true }));
   }
 
+  async function onDeleteDeck(deck) {
+    if (!deck?.deck_id) return;
+    if (!window.confirm(`Delete deck "${deck.deck_id}"? This cannot be undone.`)) return;
+    setBusy(true);
+    setError("");
+    const res = await deleteDeckApi(deck.deck_id);
+    if (!res.ok) {
+      setError(`Failed to delete deck (HTTP ${res.status}).`);
+    } else {
+      // reload list and clear selection if we removed the current one
+      await loadDecks();
+      if (selectedDeck?.deck_id === deck.deck_id) {
+        setSelectedDeck(null);
+      }
+    }
+    setBusy(false);
+  }
+
   const selectedQuestions = useMemo(() => getQuestionsArray(selectedDeck), [selectedDeck]);
   const selectedStatus = selectedDeck?.questions?.status;
 
@@ -191,21 +209,32 @@ export default function DeckListPanel() {
                       <div className="mt-1 text-xs text-slate-400">{count} question(s)</div>
                     </button>
 
-                    <button
-                      onClick={() => onSetActive(deck)}
-                      disabled={activeDeck?.deckId === deck?.deck_id}
-                      className={`rounded-lg px-3 py-2 text-xs font-semibold
-                        ${activeDeck?.deckId === deck?.deck_id
-                          ? "bg-slate-600 text-slate-300 cursor-not-allowed"
-                          : "bg-emerald-600 text-white hover:bg-emerald-500"}`}
-                      title={
-                        activeDeck?.deckId === deck?.deck_id
-                          ? "This deck is already active"
-                          : "Sets this as Active Deck for later session setup"
-                      }
-                    >
-                      Set Active
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => onSetActive(deck)}
+                        disabled={activeDeck?.deckId === deck?.deck_id || busy}
+                        className={`rounded-lg px-3 py-2 text-xs font-semibold
+                          ${activeDeck?.deckId === deck?.deck_id
+                            ? "bg-slate-600 text-slate-300 cursor-not-allowed"
+                            : "bg-emerald-600 text-white hover:bg-emerald-500"}`}
+                        title={
+                          activeDeck?.deckId === deck?.deck_id
+                            ? "This deck is already active"
+                            : "Sets this as Active Deck for later session setup"
+                        }
+                      >
+                        Set Active
+                      </button>
+
+                      <button
+                        onClick={() => onDeleteDeck(deck)}
+                        disabled={busy}
+                        className="rounded-lg bg-rose-600 px-2 py-2 text-xs font-semibold text-white hover:bg-rose-500"
+                        title="Delete this deck"
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
