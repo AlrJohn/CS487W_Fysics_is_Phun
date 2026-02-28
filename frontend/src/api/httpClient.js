@@ -21,6 +21,33 @@ export function buildUrl(path) {
 }
 
 /**
+ * Build WebSocket URL to the same origin that served the page.
+ * Avoids hard‑coding 127.0.0.1 or localhost so remote devices can connect.
+ */
+export function buildWsUrl(path) {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+
+  // prefer BASE_URL host when available (backend server); fall back to
+  // the page's host otherwise. This handles the Vite dev server running on
+  // 5173 while the API is on 8000.
+  let host = window.location.host;
+  let proto = window.location.protocol === "https:" ? "wss" : "ws";
+
+  if (BASE_URL) {
+    try {
+      const url = new URL(BASE_URL);
+      host = url.host;
+      proto = url.protocol === "https:" ? "wss" : "ws";
+    } catch (e) {
+      // ignore malformed BASE_URL
+    }
+  }
+
+  return `${proto}://${host}${normalized}`;
+}
+
+
+/**
  * Parse the response as JSON when possible, otherwise as text.
  */
 export async function parseResponse(res) {

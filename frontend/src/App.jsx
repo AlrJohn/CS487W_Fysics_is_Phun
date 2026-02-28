@@ -9,6 +9,9 @@ import HostDecks from "./pages/host/HostDecks.jsx";
 import HostSessionSetup from "./pages/host/HostSessionSetup.jsx";
 import HostLogin from "./pages/host/HostLogin.jsx";
 import JuryHome from "./pages/host/Jury/JuryHome.jsx";
+import HostLobby from "./pages/host/HostLobby.jsx";
+import HostGame from "./pages/host/HostGame.jsx";
+import HostLeaderboard from "./pages/host/HostLeaderboard.jsx";
 import PlayerJoin from "./pages/PlayerJoin.jsx";
 import PlayerGame from "./pages/PlayerGame.jsx";
 
@@ -39,7 +42,9 @@ export default function App() {
           <Route path="/host" element={<HostHome />} />
           <Route path="/host/decks" element={<HostDecks />} />
           <Route path="/host/session" element={<HostSessionSetup />} />
-          <Route path="/host/game" element={<ComingSoon title="Host Game View — Coming Soon" />} />
+          <Route path="/host/lobby" element={<HostLobby />} />
+          <Route path="/host/game" element={<HostGame />} />
+          <Route path="/host/leaderboard" element={<HostLeaderboard />} />
         </Route>
 
         {/* Future experiences */}

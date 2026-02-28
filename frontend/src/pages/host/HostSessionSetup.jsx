@@ -37,33 +37,11 @@ export default function HostSessionSetup() {
   const [enableWorstFake, setEnableWorstFake] = useState(DEFAULTS.enableWorstFake);
 
   // Session state
-  const [roomCode, setRoomCode] = useState(null);
   const [busyCreating, setBusyCreating] = useState(false);
   const [creationError, setCreationError] = useState("");
-  const [sessionPlayers, setSessionPlayers] = useState([]);
 
-  // Poll for session updates
-  useEffect(() => {
-    if (!roomCode) return;
+  // (roomCode and player state now handled by the dedicated lobby page)
 
-    async function pollSessionStatus() {
-      const hostCode = getHostCode?.() || "";
-      const headers = hostCode ? { "X-Host-Code": hostCode } : {};
-
-      try {
-        const res = await fetch(buildUrl(`/session-status/${roomCode}`), { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setSessionPlayers(data.players || []);
-        }
-      } catch (err) {
-        // silent fail
-      }
-    }
-
-    const interval = setInterval(pollSessionStatus, 1500);
-    return () => clearInterval(interval);
-  }, [roomCode]);
 
   async function onCreateSession() {
     setBusyCreating(true);
@@ -85,7 +63,8 @@ export default function HostSessionSetup() {
         return;
       }
 
-      setRoomCode(res.data.room_code);
+      // navigate to new lobby page, passing room code
+      navigate("/host/lobby", { state: { roomCode: res.data.room_code } });
       setBusyCreating(false);
     } catch (err) {
       setCreationError(err.message || "Unknown error");
@@ -93,15 +72,7 @@ export default function HostSessionSetup() {
     }
   }
 
-  function onStartGame() {
-    navigate("/host/game", { state: { roomCode, deckName: activeDeck.name } });
-  }
-
-  function onBackToSettings() {
-    setRoomCode(null);
-    setSessionPlayers([]);
-    setCreationError("");
-  }
+  // helpers removed - lobby page handles start/back actions
 
   // Basic deck summary derived from the active deck
   const deckSummary = useMemo(() => {
@@ -269,52 +240,7 @@ export default function HostSessionSetup() {
               )}
             </section>
 
-            {/* Session Lobby (shown after session created) */}
-            {roomCode && (
-              <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
-                <h2 className="text-lg font-semibold">Game Lobby</h2>
-                <div className="mt-4">
-                  <div className="text-sm text-slate-400">Room Code</div>
-                  <div className="mt-1 rounded-lg bg-slate-950/60 p-3 text-center">
-                    <div className="text-4xl font-bold tracking-wider text-emerald-400">{roomCode}</div>
-                  </div>
-                  <div className="mt-2 text-xs text-slate-400 text-center">
-                    Players enter this code on the join page
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-sm text-slate-400">Connected Players ({sessionPlayers.length})</div>
-                  <div className="mt-2 rounded-lg bg-slate-950/30 p-3">
-                    {sessionPlayers.length === 0 ? (
-                      <div className="text-xs text-slate-400">Waiting for players...</div>
-                    ) : (
-                      <ul className="space-y-1 text-sm">
-                        {sessionPlayers.map((name, i) => (
-                          <li key={i} className="text-slate-200">• {name}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-2">
-                  <button
-                    onClick={onStartGame}
-                    className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-                  >
-                    Start Game →
-                  </button>
-                  <button
-                    onClick={onBackToSettings}
-                    className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-600"
-                  >
-                    Back
-                  </button>
-                </div>
-              </section>
-            )}
-          </>
+            {/* session lobby is now a separate page; user will be redirected there */}          </>
         )}
       </main>
     </div>
