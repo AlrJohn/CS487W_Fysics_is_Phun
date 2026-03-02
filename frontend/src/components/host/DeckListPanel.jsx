@@ -161,7 +161,7 @@ return (
       {/* 1. CONDENSED HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-5">
         <div>
-          <h2 className="text-lg font-semibold">Stored Decks</h2>
+          <h1 className="text-xl font-semibold">Stored Decks</h1>
           <p className="text-xs text-slate-400">Manage your "Fysics is Phun" question library</p>
         </div>
 

@@ -44,7 +44,7 @@ export default function ActiveDeckCard() {
             {activeDeck.questions.length} question(s)
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            This deck will be used when creating a session (next step).
+            This deck will be used when creating a session.
           </p>
         </div>
 

@@ -141,7 +141,7 @@ export default function HostSessionSetup() {
                   <span className="font-semibold text-slate-100">Questions:</span> {deckSummary.count}
                 </div>
                 <div className="mt-2 text-xs text-slate-400">
-                  First question preview: {deckSummary.firstQuestion}
+                  Preview: {deckSummary.firstQuestion}
                 </div>
               </div>
             </section>
@@ -166,7 +166,7 @@ export default function HostSessionSetup() {
                     }
                     className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-100"
                   />
-                  <div className="mt-1 text-xs text-slate-400">Default: 60s</div>
+                  <div className="mt-1 text-xs text-slate-400">In this stage, the question is presented and players can submit their answers.</div>
                 </label>
 
                 <label className="block">
@@ -181,7 +181,7 @@ export default function HostSessionSetup() {
                     }
                     className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-100"
                   />
-                  <div className="mt-1 text-xs text-slate-400">Default: 45s</div>
+                  <div className="mt-1 text-xs text-slate-400">Players must choose which answer they believe is correct.</div>
                 </label>
               </div>
 
@@ -194,7 +194,7 @@ export default function HostSessionSetup() {
                 />
                 <div>
                   <div className="text-sm font-semibold">Enable “Worst Fake” (-1)</div>
-                  <div className="text-xs text-slate-400">Default OFF for MVP safety.</div>
+                  <div className="text-xs text-slate-400">Jury will be allowed to choose a "worst fake" submission to award -1 points.</div>
                 </div>
               </label>
 
