@@ -187,8 +187,7 @@ export default function DeckCreateCard() {
         <div>
           <h2 className="text-lg font-semibold">Create a New Deck</h2>
           <p className="mt-2 text-sm text-slate-300">
-            Create a deck directly in the app and save it to the backend
-            (<span className="font-mono">POST /save-deck</span>).
+            Create a deck directly in the app.
           </p>
         </div>
       </div>
@@ -230,7 +229,7 @@ export default function DeckCreateCard() {
 
             <div className="mt-3 grid gap-3">
               <div>
-                <label className="text-xs font-semibold text-slate-300">Question_Text</label>
+                <label className="text-xs font-semibold text-slate-300">Question Text</label>
                 <textarea
                   value={r.Question_Text}
                   onChange={(e) => setRowField(idx, "Question_Text", e.target.value)}
@@ -242,7 +241,7 @@ export default function DeckCreateCard() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300">Correct_Answer</label>
+                  <label className="text-xs font-semibold text-slate-300">Correct Answer</label>
                   <input
                     value={r.Correct_Answer}
                     onChange={(e) => setRowField(idx, "Correct_Answer", e.target.value)}
@@ -252,7 +251,7 @@ export default function DeckCreateCard() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300">Predefined_Fake</label>
+                  <label className="text-xs font-semibold text-slate-300">Predefined Fake</label>
                   <input
                     value={r.Predefined_Fake}
                     onChange={(e) => setRowField(idx, "Predefined_Fake", e.target.value)}

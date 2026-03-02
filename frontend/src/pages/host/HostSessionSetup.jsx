@@ -156,6 +156,7 @@ export default function HostSessionSetup() {
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <div className="text-sm font-semibold">Stage 1 timer (seconds)</div>
+                  <div className="mt-1 text-xs text-slate-400">In this stage, the question is presented and players can submit their answers.</div>
                   <input
                     type="number"
                     min={10}
@@ -166,11 +167,12 @@ export default function HostSessionSetup() {
                     }
                     className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-100"
                   />
-                  <div className="mt-1 text-xs text-slate-400">In this stage, the question is presented and players can submit their answers.</div>
+              
                 </label>
 
                 <label className="block">
                   <div className="text-sm font-semibold">Stage 2 timer (seconds)</div>
+                  <div className="mt-1 text-xs text-slate-400">Players must choose which answer they believe is correct.</div>
                   <input
                     type="number"
                     min={10}
@@ -181,7 +183,6 @@ export default function HostSessionSetup() {
                     }
                     className="mt-2 w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-100"
                   />
-                  <div className="mt-1 text-xs text-slate-400">Players must choose which answer they believe is correct.</div>
                 </label>
               </div>
 

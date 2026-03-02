@@ -55,15 +55,6 @@ export default function ActiveDeckCard() {
           Clear
         </button>
       </div>
-
-      <div className="mt-4">
-        <a
-          href="/host/decks"
-          className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700"
-        >
-          Manage Decks
-        </a>
-      </div>
     </section>
   );
 }
