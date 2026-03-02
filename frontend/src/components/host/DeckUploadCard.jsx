@@ -203,30 +203,6 @@ export default function DeckUploadCard() {
         After upload, click <span className="font-semibold">Set as Active Deck</span>.
       </p>
 
-      {/* Schema + template */}
-      <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-        <div className="text-sm font-semibold">Required CSV Columns</div>
-        <ul className="mt-2 grid gap-1 text-sm text-slate-200 sm:grid-cols-2">
-          {REQUIRED_COLUMNS.map((c) => (
-            <li key={c} className="font-mono">
-              {c}
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-slate-400">
-            Tip: avoid commas inside fields unless you wrap them in quotes.
-          </div>
-
-          <button
-            onClick={downloadTemplate}
-            className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700"
-          >
-            Download CSV Template
-          </button>
-        </div>
-      </div>
 
       {/* Upload controls */}
       <div className="mt-4 grid gap-3">
@@ -267,6 +243,32 @@ export default function DeckUploadCard() {
           )}
         </div>
       </div>
+
+            {/* Schema + template */}
+      <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+        <div className="text-sm font-semibold">Required CSV Columns</div>
+        <ul className="mt-2 grid gap-1 text-sm text-slate-200 sm:grid-cols-2">
+          {REQUIRED_COLUMNS.map((c) => (
+            <li key={c} className="font-mono">
+              {c}
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-xs text-slate-400">
+            Tip: avoid commas inside fields unless you wrap them in quotes.
+          </div>
+
+          <button
+            onClick={downloadTemplate}
+            className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700"
+          >
+            Download CSV Template
+          </button>
+        </div>
+      </div>
+
 
       {/* Results */}
       {result && (

@@ -15,6 +15,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { listDecksApi, getDeckDetailApi, deleteDeckApi } from "../../api/decks.js";
 import { useDeck } from "../../state/DeckContext.jsx";
 import { buildUrl } from "../../api/httpClient";
+import Modal from "./Modal.jsx"; 
+import DeckCreateCard from "./DeckCreateCard.jsx";
+import DeckUploadCard from "./DeckUploadCard.jsx";
 
 /**
  * Given a deck detail object from backend:
@@ -41,6 +44,8 @@ export default function DeckListPanel() {
   const [decks, setDecks] = useState([]); // array of deck detail objects
   const [selectedDeck, setSelectedDeck] = useState(null);
   const [imageErrors, setImageErrors] = useState({}); // track failed image loads
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
 
   async function loadDecks() {
     setBusy(true);
@@ -150,22 +155,58 @@ export default function DeckListPanel() {
   const selectedQuestions = useMemo(() => getQuestionsArray(selectedDeck), [selectedDeck]);
   const selectedStatus = selectedDeck?.questions?.status;
 
-  return (
+return (
     <section className="mt-4 rounded-xl border border-slate-800 bg-slate-900/40 p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Stored Decks</h2>
-        <button
-          onClick={loadDecks}
-          disabled={busy}
-          className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700 disabled:opacity-60"
-        >
-          {busy ? "Refreshing..." : "Refresh"}
-        </button>
+      
+      {/* 1. CONDENSED HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold">Stored Decks</h2>
+          <p className="text-xs text-slate-400">Manage your "Fysics is Phun" question library</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+          >
+            + Create Deck
+          </button>
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+          >
+            ↑ Upload CSV
+          </button>
+          <button
+            onClick={loadDecks}
+            disabled={busy}
+            className="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-700 disabled:opacity-60"
+          >
+            {busy ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
       </div>
 
+      {/* 2. MODAL COMPONENTS */}
+      <Modal 
+        isOpen={isCreateOpen} 
+        onClose={() => setIsCreateOpen(false)} 
+        title="Manual Deck Creator"
+      >
+        <DeckCreateCard /> 
+      </Modal>
+
+      <Modal 
+        isOpen={isUploadOpen} 
+        onClose={() => setIsUploadOpen(false)} 
+        title="CSV Deck Uploader"
+      >
+        <DeckUploadCard />
+      </Modal>
+
       <p className="mt-2 text-sm text-slate-300">
-        Click a deck to view full details. Use “Set Active” to mark it for session setup later.
+        Click a deck to view full details. Use “Set Active” to mark it for session setup.
       </p>
 
       {/* Error */}
@@ -184,9 +225,9 @@ export default function DeckListPanel() {
 
       {/* List + Detail */}
       {decks.length > 0 && (
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+  <div className="mt-4 grid gap-4 lg:grid-cols-3">
           {/* Deck list */}
-          <div className="grid gap-3">
+          <div className="grid gap-3 lg:col-span-1">
             {decks.map((deck, idx) => {
               const title = getDeckTitle(deck, idx);
               const count = getQuestionsArray(deck).length;
@@ -242,7 +283,7 @@ export default function DeckListPanel() {
           </div>
 
           {/* Detail panel */}
-          <div className="rounded-lg border border-slate-800 bg-slate-950/30 p-4">
+          <div className="rounded-lg border border-slate-800 bg-slate-950/30 p-4 lg:col-span-2">
             {!selectedDeck ? (
               <div className="text-sm text-slate-300">Select a deck to view its questions.</div>
             ) : (
@@ -329,5 +370,7 @@ export default function DeckListPanel() {
         </div>
       )}
     </section>
+
+    
   );
 }
