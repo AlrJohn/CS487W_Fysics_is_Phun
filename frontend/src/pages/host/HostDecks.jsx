@@ -42,12 +42,6 @@ export default function HostDecks() {
 
       {/* Main Content Area */}
       <main className="mx-auto max-w-[85%] px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Available Decks</h1>
-          <p className="mt-2 text-slate-400">
-            Create, upload, or select a question set to begin your session.
-          </p>
-        </div>
 
         {/* DeckListPanel contains the primary UI for deck interaction, 
            including Create/Upload action buttons and Modal state management.
