@@ -257,14 +257,17 @@ return (
                         className={`rounded-lg px-3 py-2 text-xs font-semibold
                           ${activeDeck?.deckId === deck?.deck_id
                             ? "bg-slate-600 text-slate-300 cursor-not-allowed"
-                            : "bg-emerald-600 text-white hover:bg-emerald-500"}`}
-                        title={
+                            : "bg-emerald-600 text-white hover:bg-emerald-500"}`
+
+                          }
+                        
+                            title={
                           activeDeck?.deckId === deck?.deck_id
                             ? "This deck is already active"
                             : "Sets this as Active Deck for later session setup"
                         }
                       >
-                        Set Active
+                        {activeDeck?.deckId === deck?.deck_id ? "(Active)" : "Set Active"}
                       </button>
 
                       <button
