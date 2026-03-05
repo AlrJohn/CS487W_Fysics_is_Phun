@@ -412,6 +412,24 @@ async def delete_deck(filename: str, _ok: bool = Depends(require_host)):
     else:
         raise HTTPException(status_code=404, detail="File not found")
 
+@app.get("/decks/{filename}/download")
+async def download_deck_csv(filename: str, _ok: bool = Depends(require_host)):
+    """
+    Triggers a browser download of the specific CSV file.
+    """
+    file_path = f"decks/{filename}"
+    
+    # Check if the file actually exists on the server
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="Deck file not found")
+    
+    # return the file as a downloadable response
+    return FileResponse(
+        path=file_path, 
+        filename=filename, 
+        media_type='text/csv'
+    )
+
 @app.post("/upload-asset")
 async def upload_asset(file: UploadFile = File(...), _ok: bool = Depends(require_host)):
     """
