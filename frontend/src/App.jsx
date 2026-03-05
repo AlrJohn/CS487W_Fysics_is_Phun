@@ -8,7 +8,7 @@ import HostHome from "./pages/host/HostHome.jsx";
 import HostDecks from "./pages/host/HostDecks.jsx";
 import HostSessionSetup from "./pages/host/HostSessionSetup.jsx";
 import HostLogin from "./pages/host/HostLogin.jsx";
-import JuryHome from "./pages/host/Jury/JuryHome.jsx";
+import JuryHome from "./pages/jury/JuryHome.jsx";
 import HostLobby from "./pages/host/HostLobby.jsx";
 import HostGame from "./pages/host/HostGame.jsx";
 import HostLeaderboard from "./pages/host/HostLeaderboard.jsx";

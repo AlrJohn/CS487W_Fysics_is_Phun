@@ -288,9 +288,8 @@ export default function DeckListPanel() {
               return (
                 <div
                   key={deck?.deck_id || idx}
-                  className={`rounded-lg border bg-slate-950/30 p-4 ${
-                    isSelected ? "border-indigo-500" : "border-slate-800"
-                  }`}
+                  className={`rounded-lg border bg-slate-950/30 p-4 ${isSelected ? "border-indigo-500" : "border-slate-800"
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <button
@@ -311,11 +310,10 @@ export default function DeckListPanel() {
                         onClick={() => onSetActive(deck)}
                         disabled={activeDeck?.deckId === deck?.deck_id || busy}
                         className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors
-    ${
-      activeDeck?.deckId === deck?.deck_id
-        ? "bg-emerald-600 text-white cursor-default" // Active is now Green
-        : "bg-slate-700 text-slate-200 hover:bg-slate-600" // Inactive is now Grey
-    }`}
+    ${activeDeck?.deckId === deck?.deck_id
+                            ? "bg-emerald-600 text-white cursor-default" // Active is now Green
+                            : "bg-slate-700 text-slate-200 hover:bg-slate-600" // Inactive is now Grey
+                          }`}
                         title={
                           activeDeck?.deckId === deck?.deck_id
                             ? "This is the current active deck"
