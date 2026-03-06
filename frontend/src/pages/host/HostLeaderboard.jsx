@@ -33,9 +33,9 @@ export default function HostLeaderboard() {
         if (res.ok) {
           const data = await res.json();
           // Sort players by score (highest first)
-          const sortedPlayers = (data.players || []).sort(
-            (a, b) => b.score - a.score,
-          );
+          const scoreboard = data.scoreboard || []; // expected format: [(playerName, score), ... ]
+          const sortedPlayers = scoreboard
+            .sort((a, b) => b[1] - a[1]); // sort by score descending
           setPlayers(sortedPlayers);
         }
       } catch (err) {
@@ -155,7 +155,7 @@ export default function HostLeaderboard() {
                   ★ Champion ★
                 </div>
                 <div className="text-2xl md:text-3xl font-bold text-white px-8 py-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/40 shadow-[0_0_30px_rgba(16,185,129,0.2)] backdrop-blur-sm">
-                  {players[0].name || players[0]}
+                  {players[0].name || players[0][0] || "Unknown Player"}
                 </div>
               </div>
             </div>
@@ -200,11 +200,11 @@ export default function HostLeaderboard() {
                           #{idx + 1}
                         </div>
                         <div className={`font-bold tracking-wide ${idx === 0 ? "text-xl text-white drop-shadow-sm" : "text-lg text-indigo-100"}`}>
-                          {player}
+                          {player[0] || player.name || "Unknown Player"}
                         </div>
                       </div>
-                      {/* Placeholder for score info once implemented */}
-                      <div className="text-xs font-bold uppercase text-indigo-400/50 group-hover:text-indigo-400 transition-colors">Player</div>
+                      {/* Display player score */}
+                      <div className="text-xs font-bold uppercase text-indigo-400/50 group-hover:text-indigo-400 transition-colors">{player[1] !== undefined ? `${player[1]} pts` : ""}</div>
                     </div>
                   ))}
                 </div>

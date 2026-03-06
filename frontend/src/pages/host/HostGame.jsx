@@ -114,6 +114,7 @@ export default function HostGame() {
           type: "question",
           index: currentQuestionIndex,
           question: currentQuestion,
+          correctAnswer: currentQuestion.Correct_Answer, // include correct answer for server to use in scoring
         })
       );
     }

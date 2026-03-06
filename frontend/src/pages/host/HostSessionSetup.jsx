@@ -89,7 +89,7 @@ export default function HostSessionSetup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-[#0a0523] to-[#0d011c]">
-      <header className="sticky top-0 z-10 border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+      <header className="sticky top-0 z-40 border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-indigo-300">Host View</div>

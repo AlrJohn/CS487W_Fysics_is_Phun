@@ -136,7 +136,8 @@ async def create_session(request: SessionRequest):
         "players": [],
         "jurors": [],
         "status": "lobby",
-        "current_index": None,  # will hold index of question in progress
+        "current_index": None, # will hold index of question in progress
+        "current_correct_answer": "",  # will hold the correct answer for the current question
         # per-question collections for gameplay
         "submissions": {},       # questionIndex -> [ {player, text}, ... ]
         "choices": {},           # questionIndex -> { player: answer }
@@ -190,7 +191,9 @@ async def get_session_status(room_code: str):
     ret = {
         "room_code": code,
         "status": sess["status"],
-        "players": sess["players"]
+        "players": sess["players"],
+        "jurors": sess["jurors"],
+        "scoreboard": list(zip(sess["scores"].keys(), sess["scores"].values())) # convert score dict to list of tuples for easier frontend handling
     }
     if sess.get("current_index") is not None:
         ret["current_index"] = sess["current_index"]
@@ -259,6 +262,7 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 active_sessions[code]["status"] = "in-progress"
                 active_sessions[code]["current_index"] = msg.get("index")
                 active_sessions[code]["current_question"] = msg.get("question")
+                active_sessions[code]["current_correct_answer"] = msg.get("correctAnswer")
                 # broadcast to all peers except sender
                 for ws in session_sockets.get(code, [])[:]:
                     if ws is websocket:
@@ -269,23 +273,25 @@ async def session_ws(websocket: WebSocket, room_code: str):
                         session_sockets[code].remove(ws)
                     except Exception:
                         pass
-            elif msg.get("type") == "cancelled":
-                for ws in session_sockets.get(code, [])[:]:
-                    if ws is websocket:
+            elif msg.get("type") == "cancelled": # host is cancelling the game
+                for ws in session_sockets.get(code, [])[:]: # broadcast to all peers except sender
+                    if ws is websocket: 
                         continue
                     try:
-                        await ws.send_json({"type":"cancelled"})
+                        await ws.send_json({"type":"cancelled"}) # notify clients to exit
                     except Exception:
                         pass
             elif msg.get("type") == "fake":
                 # a player submitted a fake answer
                 player = msg.get("player")
                 text = msg.get("text")
-                idx = active_sessions[code].get("current_index")
-                subs = active_sessions[code].setdefault("submissions", {})
-                subs.setdefault(idx, []).append({"player": player, "text": text})
+                idx = active_sessions[code].get("current_index") # which question index is this for?
+                subs = active_sessions[code].setdefault("submissions", {}) # questionIndex -> [ {player, text}, ... ]. setdefault works by returning the existing value if key exists, or setting it to the provided default (empty dict here) and returning that if key doesn't exist. This way we ensure there's always a dict to work with for "submissions".
+                subs.setdefault(idx, []).append({"player": player, "text": text}) # store the submission in our session state for later retrieval during answer reveal
                 # broadcast to host (and others) that a submission arrived
                 for ws in session_sockets.get(code, [])[:]:
+                    if ws is websocket:
+                        continue
                     try:
                         await ws.send_json({"type": "submission", "player": player})
                     except Exception:
@@ -295,7 +301,7 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 idx = active_sessions[code].get("current_index")
                 # gather player-submitted fakes for this question
                 subs = active_sessions[code].get("submissions", {}).get(idx, [])
-                const_list = list(msg.get("answers") or [])
+                const_list = list(msg.get("answers") or []) # start with the correct + predefined fakes sent by host
                 for entry in subs:
                     # entry has {player, text}
                     const_list.append(entry.get("text"))
@@ -312,14 +318,19 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 # player chose an answer during answer phase
                 player = msg.get("player")
                 choice = msg.get("answer")
+                #scoring logic: if the chosen answer matches the correct answer for the current question, increment player's score. ensure case-insensitive comparison and strip whitespace for robustness
+                if choice and active_sessions[code].get("current_correct_answer") and choice.strip().lower() == active_sessions[code]["current_correct_answer"].strip().lower():
+                    # correct answer chosen
+                    active_sessions[code]["scores"][player] = active_sessions[code]["scores"].get(player, 0) + 1 # increment score
+                # record the choice for stats
                 idx = active_sessions[code].get("current_index")
-                choices = active_sessions[code].setdefault("choices", {})
+                choices = active_sessions[code].setdefault("choices", {}) # questionIndex -> { player: choice }
                 choices.setdefault(idx, {})[player] = choice
                 # after recording choice, optionally check if all players have chosen
             elif msg.get("type") == "results_request":
                 # host wants to see results for current question
                 idx = active_sessions[code].get("current_index")
-                correct = None
+                correct = active_sessions[code].get("current_correct_answer")
                 # attempt to read correct from stored question object if saved
                 # but simpler: host will resend correct as part of message
                 # server can compute stats based on stored choices
@@ -329,10 +340,17 @@ async def session_ws(websocket: WebSocket, room_code: str):
                     stats[ans] = stats.get(ans, 0) + 1
                 # broadcast results
                 for ws in session_sockets.get(code, [])[:]:
-                    try:
-                        await ws.send_json({"type": "results", "stats": stats})
-                    except Exception:
-                        pass
+                    if ws is websocket:
+                        try:
+                            await ws.send_json({"type": "results", "stats": stats})
+                        except Exception:
+                            pass
+                    else:
+                        #the players should get whether they were correct or not, so include the correct answer in the payload for them but not for the host since they already know it
+                        try:
+                            await ws.send_json({"type": "results", "correct": correct})
+                        except Exception:
+                            pass
             elif msg.get("type") == "game_finished":
                 # host is ending the game; broadcast to all players
                 active_sessions[code]["status"] = "finished"

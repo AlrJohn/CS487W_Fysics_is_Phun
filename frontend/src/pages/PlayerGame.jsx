@@ -39,7 +39,7 @@ export default function PlayerGame() {
   const [myFake, setMyFake] = useState("");
   const [answers, setAnswers] = useState([]);
   const [myChoice, setMyChoice] = useState(null);
-  const [resultStats, setResultStats] = useState(null);
+  const [correctAnswer, setCorrectAnswer] = useState(null);
 
   // Poll for session updates (players count, status)
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function PlayerGame() {
           setMyFake("");
           setAnswers([]);
           setMyChoice(null);
-          setResultStats(null);
+          setCorrectAnswer(null);
         } else if (msg.type === "cancelled") {
           setSessionCancelled(true);
         } else if (msg.type === "game_finished") {
@@ -108,7 +108,7 @@ export default function PlayerGame() {
           setAnswers(msg.answers || []);
           setPhase("choose");
         } else if (msg.type === "results") {
-          setResultStats(msg.stats || {});
+          setCorrectAnswer(msg.correct || "");
           setPhase("results");
         }
       } catch (e) {
@@ -291,18 +291,22 @@ export default function PlayerGame() {
               </div>
             )}
 
-            {phase === "results" && resultStats && (
+            {phase === "results" && correctAnswer && (
               <div className="mt-8 text-left">
-                <div className="text-sm font-semibold text-indigo-300 uppercase tracking-wider mb-4 border-b border-indigo-500/20 pb-2">Results</div>
+                <div className="text-sm font-semibold text-indigo-300 uppercase tracking-wider mb-4 border-b border-indigo-500/20 pb-2">Verdict</div>
                 <div className="space-y-3">
-                  {Object.entries(resultStats).map(([ans, count]) => (
+                  {/* resultStats is expected to be the correct answer to the question. A message should be displayed stating if user's choice was correct or not */}
+                  <div className="text-lg font-semibold text-white">
+                    {correctAnswer === myChoice ? `${myChoice} is correct!` : `${myChoice} is incorrect! \nThe correct answer was: ${correctAnswer}`}
+                  </div>
+                  {/* {Object.entries(resultStats).map(([ans, count]) => (
                     <div key={ans} className="flex justify-between items-center rounded-lg bg-indigo-950/40 border border-indigo-500/20 p-4">
                       <span className="text-white font-medium">{ans}</span>
                       <span className="bg-purple-600/20 text-purple-300 py-1 px-3 rounded-full text-sm font-bold border border-purple-500/30">
                         {count} vote{count !== 1 ? "s" : ""}
                       </span>
                     </div>
-                  ))}
+                  ))} */}
                 </div>
               </div>
             )}
