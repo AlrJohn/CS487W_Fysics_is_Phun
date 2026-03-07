@@ -51,6 +51,8 @@ export default function DeckListPanel() {
   const [imageErrors, setImageErrors] = useState({}); // track failed image loads
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingDeck, setEditingDeck] = useState(null);
 
   async function loadDecks() {
     setBusy(true);
@@ -164,6 +166,18 @@ export default function DeckListPanel() {
     setBusy(false);
   }
 
+  function onEditDeck(deck) {
+    if (!deck?.deck_id) return;
+    setEditingDeck({ name: deck.deck_id, questions: getQuestionsArray(deck) });
+    setIsEditOpen(true);
+  }
+
+  async function handleEditClose(saved) {
+    setIsEditOpen(false);
+    setEditingDeck(null);
+    if (saved) await loadDecks();
+  }
+
   async function onDownloadBackup(deck) {
     if (!deck?.deck_id) return;
 
@@ -256,6 +270,20 @@ export default function DeckListPanel() {
         <DeckUploadCard />
       </Modal>
 
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => handleEditClose(false)}
+        title="Edit Deck"
+      >
+        {editingDeck && (
+          <DeckCreateCard
+            initialDeck={editingDeck}
+            isEditing={true}
+            onClose={handleEditClose}
+          />
+        )}
+      </Modal>
+
       <p className="mt-2 text-sm text-slate-300">
         Click a deck to view full details. Use “Set Active” to mark it for
         session setup.
@@ -345,6 +373,15 @@ export default function DeckListPanel() {
                             d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                           />
                         </svg>
+                      </button>
+
+                      <button
+                        onClick={() => onEditDeck(deck)}
+                        disabled={busy}
+                        className="rounded-lg bg-amber-600 px-2.5 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-50 transition-colors"
+                        title="Edit this deck"
+                      >
+                        Edit
                       </button>
 
                       <button

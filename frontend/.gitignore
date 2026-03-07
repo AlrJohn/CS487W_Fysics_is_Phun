@@ -34,7 +34,8 @@ dist/
 .env.local
 .env.*.local
 
-decks/
+backend/decks/
+backend/assets/
 
 # editor junk
 .DS_Store

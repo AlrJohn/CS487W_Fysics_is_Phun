@@ -418,6 +418,22 @@ async def save_new_deck(deck_data: CreateDeckRequest, _ok: bool = Depends(requir
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save deck: {str(e)}")
 
+@app.put("/decks/{filename}")
+async def update_deck(filename: str, deck_data: CreateDeckRequest, _ok: bool = Depends(require_host)):
+    """
+    Overwrites an existing deck CSV with updated question data.
+    Returns 404 if the deck does not exist.
+    """
+    file_path = f"decks/{filename}"
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail=f"Deck '{filename}' not found")
+    try:
+        df = pd.DataFrame([q.dict() for q in deck_data.questions])
+        df.to_csv(file_path, index=False)
+        return {"status": "success", "filename": filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update deck: {str(e)}")
+
 @app.delete("/decks/{filename}")
 async def delete_deck(filename: str, _ok: bool = Depends(require_host)):
     """
