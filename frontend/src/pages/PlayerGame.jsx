@@ -40,6 +40,17 @@ export default function PlayerGame() {
   const [answers, setAnswers] = useState([]);
   const [myChoice, setMyChoice] = useState(null);
   const [correctAnswer, setCorrectAnswer] = useState(null);
+  const [waitingDotCount, setWaitingDotCount] = useState(1);
+
+  //trailing dots 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWaitingDotCount((prev) => (prev % 3) + 1);
+    }, 450);
+    return () => clearInterval(interval);
+  }, []);
+
+  const waitingDots = ".".repeat(waitingDotCount);
 
   // Poll for session updates (players count, status)
   useEffect(() => {
@@ -263,7 +274,9 @@ export default function PlayerGame() {
             {phase === "waiting" && (
               <div className="mt-10 mb-4 flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-purple-500 rounded-full animate-spin"></div>
-                <div className="text-indigo-200 font-semibold tracking-wide">Waiting for others...</div>
+                <div className="text-indigo-200 font-semibold tracking-wide">
+                  Waiting for others<span className="inline-block w-6 text-left">{waitingDots}</span>
+                </div>
               </div>
             )}
 
@@ -348,7 +361,9 @@ export default function PlayerGame() {
 
           <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
 
-          <h2 className="text-3xl font-bold text-white mb-2 tracking-wide">Waiting for host...</h2>
+          <h2 className="text-3xl font-bold text-white mb-2 tracking-wide">
+            Waiting for host<span className="inline-block w-6 text-left">{waitingDots}</span>
+          </h2>
           <div className="text-sm text-indigo-200/70 uppercase tracking-widest font-semibold">Questions Coming Soon</div>
 
           {sessionStatus && (
