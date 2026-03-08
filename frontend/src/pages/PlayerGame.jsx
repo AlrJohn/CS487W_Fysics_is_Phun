@@ -50,7 +50,8 @@ export default function PlayerGame() {
     return () => clearInterval(interval);
   }, []);
 
-  const waitingDots = ".".repeat(waitingDotCount);
+  const dotMap = [".", "..", "..."];
+  const waitingDots = dotMap[waitingDotCount - 1];
 
   // Poll for session updates (players count, status)
   useEffect(() => {
@@ -275,7 +276,7 @@ export default function PlayerGame() {
               <div className="mt-10 mb-4 flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-purple-500 rounded-full animate-spin"></div>
                 <div className="text-indigo-200 font-semibold tracking-wide">
-                  Waiting for others<span className="inline-block w-6 text-left">{waitingDots}</span>
+                  Waiting for others<span className="inline-block w-8 text-left">{waitingDots}</span>
                 </div>
               </div>
             )}
