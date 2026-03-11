@@ -12,6 +12,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { buildUrl } from "../../api/httpClient";
 import confetti from "canvas-confetti";
+import { useDeck } from "../../state/DeckContext.jsx";
+
 
 export default function HostLeaderboard() {
   const location = useLocation();
@@ -19,6 +21,126 @@ export default function HostLeaderboard() {
   const { roomCode } = location.state || {};
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submissions, setSubmissions] = useState({});
+  const [choices, setChoices] = useState({});
+  const [scores, setScores] = useState({});
+  const { activeDeck } = useDeck();
+  
+
+
+  function buildSessionResults(submissions, choices, scores) {
+    // submissions = {
+    //   [qIdx]: {
+    //     [entryIdx]: { player: "Alice", text: "fake answer" },
+    //     ...
+    //   }
+    // }
+    //
+    // choices = {
+    //   [qIdx]: {
+    //     [entryIdx]: { player: "Alice", text: "selected answer" },
+    //     ...
+    //   }
+    // }
+
+    const questionIds = [...new Set([
+      ...Object.keys(submissions || {}),
+      ...Object.keys(choices || {})
+    ])].sort((a, b) => Number(a) - Number(b)); 
+
+    const players = new Set();
+
+    for (const qid of questionIds) {
+      for (const entry of Object.values(submissions[qid] || {})) {
+        if (entry?.player) players.add(entry.player);
+      }
+      for (const entry of Object.values(choices[qid] || {})) {
+        if (entry?.player) players.add(entry.player);
+      }
+    }
+
+    console.log(activeDeck.questions);    
+
+    const headers = ["Player Name"];
+    for (const qid of Object.values(activeDeck.questions)) {
+      headers.push(`Q: ${qid.Question_Text}\nCorrect Answer: ${qid.Correct_Answer}`);
+    }
+    headers.push("Final Score");   
+
+    const rows = [];
+
+    for (const playerName of players) {
+      const row = [playerName];
+
+      for (let qid = 0; qid < headers.length -2; qid+=1) {
+        let submissionText = "";
+        let choiceText = "";
+
+        for (const entry of Object.values(submissions[qid] || {})) {
+          if (entry?.player === playerName) {
+            submissionText = entry.text ?? "";
+            break;
+          }
+        }
+
+        for (const entry of Object.values(choices[qid] || {})) {
+          if (entry?.player === playerName) {
+            choiceText = entry.text ?? "";
+            break;
+          }
+        }
+
+        const cellValue = `Submission: ${submissionText}\nChoice: ${choiceText}`;
+        row.push(cellValue);
+      }
+
+      let scoreText = scores[playerName] ?? ""
+      row.push(`Points: ${scoreText}`)
+
+      rows.push(row);
+    }
+
+    return { headers, rows };
+  }
+
+  function toCSV(headers, rows) {
+    const escapeCSV = (value) => {
+      const str = String(value ?? "");
+      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const lines = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(","))
+    ];
+
+    return lines.join("\n");
+  }
+
+  function handleExportResults() {
+    const { headers, rows } = buildSessionResults(submissions, choices, scores);
+
+    if (!rows.length) {
+      console.warn("No session results available to export.");
+      return;
+    }
+
+    const csv = toCSV(headers, rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `session-results-${roomCode || "room"}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     if (!roomCode) {
@@ -26,17 +148,18 @@ export default function HostLeaderboard() {
       return;
     }
 
-    // Fetch session status to get updated player list
     async function fetchPlayers() {
       try {
         const res = await fetch(buildUrl(`/session-status/${roomCode}`));
         if (res.ok) {
           const data = await res.json();
-          // Sort players by score (highest first)
-          const scoreboard = data.scoreboard || []; // expected format: [(playerName, score), ... ]
-          const sortedPlayers = scoreboard
-            .sort((a, b) => b[1] - a[1]); // sort by score descending
+          const scoreboard = data.scoreboard || [];
+          const sortedPlayers = scoreboard.sort((a, b) => b[1] - a[1]);
+
           setPlayers(sortedPlayers);
+          setChoices(data.choices || {});
+          setSubmissions(data.submissions || {});
+          setScores(data.scores || {});
         }
       } catch (err) {
         console.error("Failed to fetch session status", err);
@@ -53,18 +176,16 @@ export default function HostLeaderboard() {
   // Confetti effect
   useEffect(() => {
     if (!loading && players.length > 0) {
-      // --- INITIAL BURST ---
       const count = 200;
       const defaults = {
         origin: { y: 0.7 },
         spread: 90,
-        ticks: 200, // Particles last longer on screen
-        gravity: 0.8, // Lower gravity = more gradual, floaty fall
-        startVelocity: 45, // Higher velocity = shoots farther
+        ticks: 200,
+        gravity: 0.8,
+        startVelocity: 45,
         scalar: 1.2,
       };
 
-      // Fire from left
       confetti({
         ...defaults,
         particleCount: count / 2,
@@ -72,7 +193,6 @@ export default function HostLeaderboard() {
         origin: { x: 0, y: 0.6 },
       });
 
-      // Fire from right
       confetti({
         ...defaults,
         particleCount: count / 2,
@@ -80,7 +200,6 @@ export default function HostLeaderboard() {
         origin: { x: 1, y: 0.6 },
       });
 
-      // --- 2. GRADUAL FOUNTAIN ---
       const duration = 15 * 1000;
       const animationEnd = Date.now() + duration;
 
@@ -91,7 +210,6 @@ export default function HostLeaderboard() {
           return clearInterval(interval);
         }
 
-        // We use a lower particle count but higher "ticks" for a smoother look
         confetti({
           particleCount: 2,
           angle: 60,
@@ -111,7 +229,7 @@ export default function HostLeaderboard() {
           gravity: 0.7,
           colors: ["#10b981", "#6366f1"],
         });
-      }, 300); // Firing very small amounts frequently creates a "fountain" effect
+      }, 300);
 
       return () => clearInterval(interval);
     }
@@ -140,7 +258,6 @@ export default function HostLeaderboard() {
       {/* Main */}
       <main className="mx-auto w-full max-w-4xl px-4 py-8 flex-grow">
         <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 backdrop-blur-md shadow-[0_0_40px_rgba(139,92,246,0.1)] p-8 md:p-12 relative overflow-hidden group">
-          {/* Subtle glow effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-indigo-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
 
           <h1 className="text-4xl md:text-5xl font-black text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.3)] tracking-tight">
@@ -192,19 +309,26 @@ export default function HostLeaderboard() {
                       className="rounded-xl bg-indigo-950/40 border border-indigo-500/20 p-4 flex items-center justify-between transition-all hover:bg-indigo-900/40 shadow-inner group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center text-sm font-black shadow-md ${idx === 0 ? "bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-[0_0_15px_rgba(52,211,153,0.4)] border border-emerald-300" :
-                            idx === 1 ? "bg-gradient-to-br from-slate-300 to-slate-500 text-slate-900 shadow-[0_0_10px_rgba(203,213,225,0.3)] border border-slate-300" :
-                              idx === 2 ? "bg-gradient-to-br from-amber-600 to-orange-800 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)] border border-amber-600" :
-                                "bg-[#0a0523]/80 text-indigo-300 border border-indigo-500/40"
-                          }`}>
+                        <div
+                          className={`h-12 w-12 rounded-full flex items-center justify-center text-sm font-black shadow-md ${
+                            idx === 0
+                              ? "bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-[0_0_15px_rgba(52,211,153,0.4)] border border-emerald-300"
+                              : idx === 1
+                              ? "bg-gradient-to-br from-slate-300 to-slate-500 text-slate-900 shadow-[0_0_10px_rgba(203,213,225,0.3)] border border-slate-300"
+                              : idx === 2
+                              ? "bg-gradient-to-br from-amber-600 to-orange-800 text-amber-100 shadow-[0_0_10px_rgba(217,119,6,0.3)] border border-amber-600"
+                              : "bg-[#0a0523]/80 text-indigo-300 border border-indigo-500/40"
+                          }`}
+                        >
                           #{idx + 1}
                         </div>
                         <div className={`font-bold tracking-wide ${idx === 0 ? "text-xl text-white drop-shadow-sm" : "text-lg text-indigo-100"}`}>
                           {player[0] || player.name || "Unknown Player"}
                         </div>
                       </div>
-                      {/* Display player score */}
-                      <div className="text-xs font-bold uppercase text-indigo-400/50 group-hover:text-indigo-400 transition-colors">{player[1] !== undefined ? `${player[1]} pts` : ""}</div>
+                      <div className="text-xs font-bold uppercase text-indigo-400/50 group-hover:text-indigo-400 transition-colors">
+                        {player[1] !== undefined ? `${player[1]} pts` : ""}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -218,12 +342,22 @@ export default function HostLeaderboard() {
 
           {/* Actions */}
           <div className="mt-12 flex justify-center relative z-10 w-full max-w-2xl mx-auto">
-            <button
-              onClick={onReturnHome}
-              className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-indigo-500/50"
-            >
-              Return to Dashboard
-            </button>
+            <div className="w-full flex flex-col gap-4">
+              <button
+                onClick={handleExportResults}
+                disabled={loading || players.length === 0}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                Export Results as CSV
+              </button>
+
+              <button
+                onClick={onReturnHome}
+                className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-indigo-500/50"
+              >
+                Return to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </main>

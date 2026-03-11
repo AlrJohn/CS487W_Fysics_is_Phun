@@ -188,13 +188,17 @@ async def get_session_status(room_code: str):
         raise HTTPException(status_code=404, detail="Room not found")
     
     sess = active_sessions[code]
+
     ret = {
         "room_code": code,
         "status": sess["status"],
         "players": sess["players"],
         "jurors": sess["jurors"],
-        "scoreboard": list(zip(sess["scores"].keys(), sess["scores"].values())) # convert score dict to list of tuples for easier frontend handling
-    }
+        "scores" : sess["scores"],
+        "scoreboard": list(zip(sess["scores"].keys(), sess["scores"].values())), # convert score dict to list of tuples for easier frontend handling
+        "submissions": sess.get("submissions", {}), # include all submissions for all questions; for game session results exporting.,
+        "choices": sess.get("choices", {}) # include all player choices for all questions; useful for post-game analysis and report generation
+    }  
     if sess.get("current_index") is not None:
         ret["current_index"] = sess["current_index"]
     return ret
@@ -325,7 +329,7 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 # record the choice for stats
                 idx = active_sessions[code].get("current_index")
                 choices = active_sessions[code].setdefault("choices", {}) # questionIndex -> { player: choice }
-                choices.setdefault(idx, {})[player] = choice
+                choices.setdefault(idx, []).append({"player": player, "text":choice})
                 # after recording choice, optionally check if all players have chosen
             elif msg.get("type") == "results_request":
                 # host wants to see results for current question
@@ -336,8 +340,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 # server can compute stats based on stored choices
                 stats = {}
                 choices = active_sessions[code].get("choices", {}).get(idx, {})
-                for _, ans in choices.items():
-                    stats[ans] = stats.get(ans, 0) + 1
+                for choice in choices:     
+                    stats[choice["text"]] = stats.get(choice["text"], 0) + 1
                 # broadcast results
                 for ws in session_sockets.get(code, [])[:]:
                     if ws is websocket:

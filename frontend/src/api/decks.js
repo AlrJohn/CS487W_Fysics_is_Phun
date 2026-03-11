@@ -62,7 +62,6 @@ export function getDeckDetailApi(filename) {
 
 /**
  * Future: persist a deck to the backend (makeshift DB).
- * Safe to call later once /decks exists.
  */
 export function saveDeckApi(payload) {
   return httpPostJson("/save-deck", payload, hostHeaders());

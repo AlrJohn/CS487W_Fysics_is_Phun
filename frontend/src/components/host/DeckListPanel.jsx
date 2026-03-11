@@ -23,6 +23,7 @@ import { buildUrl } from "../../api/httpClient";
 import Modal from "./Modal.jsx";
 import DeckCreateCard from "./DeckCreateCard.jsx";
 import DeckUploadCard from "./DeckUploadCard.jsx";
+import { downloadTextFile } from "../../utils/download.js";
 
 /**
  * Given a deck detail object from backend:
@@ -178,6 +179,8 @@ export default function DeckListPanel() {
     if (saved) await loadDecks();
   }
 
+
+
   async function onDownloadBackup(deck) {
     if (!deck?.deck_id) return;
 
@@ -197,6 +200,7 @@ export default function DeckListPanel() {
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
+
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
