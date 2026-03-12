@@ -53,7 +53,7 @@ export default function HostSessionSetup() {
     try {
       const res = await httpPostJson(
         "/create-session",
-        { deck_id: activeDeck.deckId || activeDeck.name },
+        { deck_id: activeDeck.deckId || activeDeck.name, enable_worst_fake: enableWorstFake },
         headers
       );
 

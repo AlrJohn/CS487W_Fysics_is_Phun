@@ -123,6 +123,7 @@ session_sockets: Dict[str, List[WebSocket]] = {}
 
 class SessionRequest(BaseModel):
     deck_id: str
+    enable_worst_fake: bool = False
 
 @app.post("/create-session")
 async def create_session(request: SessionRequest):
@@ -136,12 +137,14 @@ async def create_session(request: SessionRequest):
         "players": [],
         "jurors": [],
         "status": "lobby",
-        "current_index": None, # will hold index of question in progress
-        "current_correct_answer": "",  # will hold the correct answer for the current question
-        # per-question collections for gameplay
+        "enable_worst_fake": request.enable_worst_fake,
+        "current_index": None,
+        "current_correct_answer": "",
         "submissions": {},       # questionIndex -> [ {player, text}, ... ]
         "choices": {},           # questionIndex -> { player: answer }
-        "scores": {},            # player -> score
+        "scores": {},            # player -> float score
+        "jury_votes": {},        # questionIndex -> { juror_name: { best: player_name, worst: player_name|None } }
+        "round_breakdown": {},   # questionIndex -> { player: { correct_pts, fool_pts, jury_best_pts, jury_worst_pts } }
     }
     
     return {"room_code": room_code}
@@ -194,10 +197,12 @@ async def get_session_status(room_code: str):
         "status": sess["status"],
         "players": sess["players"],
         "jurors": sess["jurors"],
-        "scores" : sess["scores"],
-        "scoreboard": list(zip(sess["scores"].keys(), sess["scores"].values())), # convert score dict to list of tuples for easier frontend handling
-        "submissions": sess.get("submissions", {}), # include all submissions for all questions; for game session results exporting.,
-        "choices": sess.get("choices", {}) # include all player choices for all questions; useful for post-game analysis and report generation
+        "scores": sess["scores"],
+        "enable_worst_fake": sess.get("enable_worst_fake", False),
+        "scoreboard": list(zip(sess["scores"].keys(), sess["scores"].values())),
+        "submissions": sess.get("submissions", {}),
+        "choices": sess.get("choices", {}),
+        "round_breakdown": sess.get("round_breakdown", {}),
     }  
     if sess.get("current_index") is not None:
         ret["current_index"] = sess["current_index"]
@@ -322,15 +327,23 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 # player chose an answer during answer phase
                 player = msg.get("player")
                 choice = msg.get("answer")
-                #scoring logic: if the chosen answer matches the correct answer for the current question, increment player's score. ensure case-insensitive comparison and strip whitespace for robustness
-                if choice and active_sessions[code].get("current_correct_answer") and choice.strip().lower() == active_sessions[code]["current_correct_answer"].strip().lower():
-                    # correct answer chosen
-                    active_sessions[code]["scores"][player] = active_sessions[code]["scores"].get(player, 0) + 1 # increment score
-                # record the choice for stats
                 idx = active_sessions[code].get("current_index")
-                choices = active_sessions[code].setdefault("choices", {}) # questionIndex -> { player: choice }
-                choices.setdefault(idx, []).append({"player": player, "text":choice})
-                # after recording choice, optionally check if all players have chosen
+                correct = active_sessions[code].get("current_correct_answer", "")
+                if choice and correct and choice.strip().lower() == correct.strip().lower():
+                    # correct answer chosen — +1 to this player
+                    active_sessions[code]["scores"][player] = active_sessions[code]["scores"].get(player, 0) + 1
+                elif choice:
+                    # wrong answer — find which player submitted this as their fake and give them +1
+                    subs = active_sessions[code].get("submissions", {}).get(idx, [])
+                    for entry in subs:
+                        if entry.get("text", "").strip().lower() == choice.strip().lower():
+                            author = entry.get("player")
+                            if author and author != player:
+                                active_sessions[code]["scores"][author] = active_sessions[code]["scores"].get(author, 0) + 1
+                            break
+                # record the choice for stats
+                choices = active_sessions[code].setdefault("choices", {})
+                choices.setdefault(idx, []).append({"player": player, "text": choice})
             elif msg.get("type") == "results_request":
                 # host wants to see results for current question
                 idx = active_sessions[code].get("current_index")
@@ -355,6 +368,116 @@ async def session_ws(websocket: WebSocket, room_code: str):
                             await ws.send_json({"type": "results", "correct": correct})
                         except Exception:
                             pass
+            elif msg.get("type") == "jury_phase":
+                # host starts jury voting phase — compile player fakes and broadcast to all (jurors will handle it)
+                idx = active_sessions[code].get("current_index")
+                subs = active_sessions[code].get("submissions", {}).get(idx, [])
+                fakes = [{"player": e["player"], "text": e["text"]} for e in subs if e.get("player") and e.get("text")]
+                enable_worst_fake = active_sessions[code].get("enable_worst_fake", False)
+                payload = {"type": "jury_phase", "fakes": fakes, "enable_worst_fake": enable_worst_fake}
+                for ws in session_sockets.get(code, [])[:]:
+                    try:
+                        await ws.send_json(payload)
+                    except Exception:
+                        pass
+            elif msg.get("type") == "jury_vote":
+                # a juror submitted their vote
+                idx = active_sessions[code].get("current_index")
+                juror_name = msg.get("juror_name", "").strip()
+                best = msg.get("best_fake_player")
+                worst = msg.get("worst_fake_player")
+                if juror_name:
+                    jury_votes = active_sessions[code].setdefault("jury_votes", {})
+                    jury_votes.setdefault(idx, {})[juror_name] = {"best": best, "worst": worst}
+                    # broadcast vote count to all (host uses it to track progress)
+                    total_jurors = len(active_sessions[code].get("jurors", []))
+                    vote_count = len(jury_votes.get(idx, {}))
+                    for ws in session_sockets.get(code, [])[:]:
+                        try:
+                            await ws.send_json({"type": "jury_vote_count", "count": vote_count, "total_jurors": total_jurors})
+                        except Exception:
+                            pass
+            elif msg.get("type") == "jury_results":
+                # host requests jury scoring — compute fractional points and broadcast round_scores
+                idx = active_sessions[code].get("current_index")
+                jurors_registered = active_sessions[code].get("jurors", [])
+                total_jurors = len(jurors_registered) or 1  # avoid divide-by-zero
+                jury_votes_for_q = active_sessions[code].get("jury_votes", {}).get(idx, {})
+                enable_worst_fake = active_sessions[code].get("enable_worst_fake", False)
+
+                # tally jury votes
+                best_tally = {}   # player -> count of best votes
+                worst_tally = {}  # player -> count of worst votes
+                for vote in jury_votes_for_q.values():
+                    b = vote.get("best")
+                    w = vote.get("worst")
+                    if b:
+                        best_tally[b] = best_tally.get(b, 0) + 1
+                    if w and enable_worst_fake:
+                        worst_tally[w] = worst_tally.get(w, 0) + 1
+
+                # apply fractional jury scores
+                for player, count in best_tally.items():
+                    pts = count / total_jurors
+                    active_sessions[code]["scores"][player] = active_sessions[code]["scores"].get(player, 0) + pts
+                for player, count in worst_tally.items():
+                    pts = count / total_jurors
+                    active_sessions[code]["scores"][player] = active_sessions[code]["scores"].get(player, 0) - pts
+
+                # build per-player round breakdown
+                correct = active_sessions[code].get("current_correct_answer", "")
+                choices_for_q = active_sessions[code].get("choices", {}).get(idx, [])
+                subs_for_q = active_sessions[code].get("submissions", {}).get(idx, [])
+
+                all_players = set(active_sessions[code].get("players", []))
+                breakdown = {}
+                for p in all_players:
+                    # correct pts: did this player guess correctly?
+                    correct_pts = 0
+                    for c in choices_for_q:
+                        if c.get("player") == p and correct and c.get("text", "").strip().lower() == correct.strip().lower():
+                            correct_pts = 1
+                            break
+
+                    # fool pts: how many players chose this player's fake?
+                    fool_pts = 0
+                    p_fake_text = None
+                    for s in subs_for_q:
+                        if s.get("player") == p:
+                            p_fake_text = s.get("text", "").strip().lower()
+                            break
+                    if p_fake_text:
+                        for c in choices_for_q:
+                            if c.get("text", "").strip().lower() == p_fake_text and c.get("player") != p:
+                                fool_pts += 1
+
+                    jury_best_pts = round(best_tally.get(p, 0) / total_jurors, 4)
+                    jury_worst_pts = round(worst_tally.get(p, 0) / total_jurors, 4) if enable_worst_fake else 0
+                    round_total = round(correct_pts + fool_pts + jury_best_pts - jury_worst_pts, 4)
+                    breakdown[p] = {
+                        "correct_pts": correct_pts,
+                        "fool_pts": fool_pts,
+                        "jury_best_pts": jury_best_pts,
+                        "jury_worst_pts": jury_worst_pts,
+                        "round_total": round_total,
+                    }
+
+                # store breakdown
+                active_sessions[code].setdefault("round_breakdown", {})[idx] = breakdown
+
+                # broadcast round_scores to all
+                scores_snapshot = dict(active_sessions[code]["scores"])
+                payload = {
+                    "type": "round_scores",
+                    "breakdown": breakdown,
+                    "scores": scores_snapshot,
+                    "correct_answer": correct,
+                }
+                for ws in session_sockets.get(code, [])[:]:
+                    try:
+                        await ws.send_json(payload)
+                    except Exception:
+                        pass
             elif msg.get("type") == "game_finished":
                 # host is ending the game; broadcast to all players
                 active_sessions[code]["status"] = "finished"

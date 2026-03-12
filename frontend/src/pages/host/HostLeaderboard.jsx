@@ -24,11 +24,12 @@ export default function HostLeaderboard() {
   const [submissions, setSubmissions] = useState({});
   const [choices, setChoices] = useState({});
   const [scores, setScores] = useState({});
+  const [roundBreakdown, setRoundBreakdown] = useState({});
   const { activeDeck } = useDeck();
   
 
 
-  function buildSessionResults(submissions, choices, scores) {
+  function buildSessionResults(submissions, choices, scores, roundBreakdown) {
     // submissions = {
     //   [qIdx]: {
     //     [entryIdx]: { player: "Alice", text: "fake answer" },
@@ -59,7 +60,6 @@ export default function HostLeaderboard() {
       }
     }
 
-    console.log(activeDeck.questions);    
 
     const headers = ["Player Name"];
     for (const qid of Object.values(activeDeck.questions)) {
@@ -90,7 +90,11 @@ export default function HostLeaderboard() {
           }
         }
 
-        const cellValue = `Submission: ${submissionText}\nChoice: ${choiceText}`;
+        const bd = roundBreakdown?.[qid]?.[playerName];
+        const bdText = bd
+          ? `Correct:${bd.correct_pts ?? 0} Fooled:${bd.fool_pts ?? 0} JuryBest:${bd.jury_best_pts ?? 0} JuryWorst:-${bd.jury_worst_pts ?? 0} RoundTotal:${bd.round_total ?? 0}`
+          : "";
+        const cellValue = `Submission: ${submissionText}\nChoice: ${choiceText}${bdText ? `\n${bdText}` : ""}`;
         row.push(cellValue);
       }
 
@@ -121,7 +125,7 @@ export default function HostLeaderboard() {
   }
 
   function handleExportResults() {
-    const { headers, rows } = buildSessionResults(submissions, choices, scores);
+    const { headers, rows } = buildSessionResults(submissions, choices, scores, roundBreakdown);
 
     if (!rows.length) {
       console.warn("No session results available to export.");
@@ -160,6 +164,7 @@ export default function HostLeaderboard() {
           setChoices(data.choices || {});
           setSubmissions(data.submissions || {});
           setScores(data.scores || {});
+          setRoundBreakdown(data.round_breakdown || {});
         }
       } catch (err) {
         console.error("Failed to fetch session status", err);

@@ -9,6 +9,7 @@ export default function HostLobby() {
   const { roomCode } = location.state || {};
 
   const [players, setPlayers] = useState([]);
+  const [jurors, setJurors] = useState([]);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
@@ -23,6 +24,7 @@ export default function HostLobby() {
         if (res.ok) {
           const data = await res.json();
           setPlayers(data.players || []);
+          setJurors(data.jurors || []);
         }
       } catch (err) {
         setError("Connection lost");
@@ -130,16 +132,48 @@ export default function HostLobby() {
           </div>
         </section>
 
+        {/* Jurors section */}
+        <section className="rounded-2xl border border-indigo-500/20 bg-indigo-950/30 backdrop-blur-md shadow-inner p-6">
+          <div className="flex items-center justify-between mb-4 border-b border-indigo-500/20 pb-3">
+            <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+              <span className="text-indigo-400">⚖</span> Jury Seats
+            </h2>
+            <span className="px-3 py-1 rounded-full bg-indigo-900/50 border border-indigo-500/30 text-indigo-200 text-sm font-bold">
+              {jurors.length}
+            </span>
+          </div>
+          {jurors.length === 0 ? (
+            <p className="text-sm text-indigo-300/60 text-center py-4">No jurors joined yet — at least 1 required to start</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {jurors.map((n, i) => (
+                <li key={i} className="bg-[#0a0523]/50 border border-indigo-500/20 rounded-xl px-3 py-2 text-indigo-100 text-sm font-medium flex items-center gap-2 shadow-inner">
+                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                    {n.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate">{n}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <button
-            onClick={() => navigate("/host/game", { state: { roomCode } })}
-            className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            Start Game
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
+          <div className="flex-1 flex flex-col gap-2">
+            <button
+              onClick={() => navigate("/host/game", { state: { roomCode } })}
+              disabled={jurors.length === 0}
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-6 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all flex items-center justify-center gap-2"
+            >
+              Start Game
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {jurors.length === 0 && (
+              <p className="text-center text-xs font-medium text-amber-400/80">At least 1 juror must join before starting</p>
+            )}
+          </div>
           <button
             onClick={onBackClick}
             disabled={cancelling}
