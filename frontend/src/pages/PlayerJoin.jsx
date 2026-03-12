@@ -11,7 +11,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { httpPostJson, buildUrl } from "../api/httpClient";
+import { httpPostJson } from "../api/httpClient";
 
 export default function PlayerJoin() {
   const navigate = useNavigate();
@@ -47,7 +47,12 @@ export default function PlayerJoin() {
       }
 
       // Success: navigate to player waiting/game view
-      navigate("/player/game", { state: { roomCode: roomCode.trim().toUpperCase(), playerName: playerName.trim() } });
+      navigate("/player/game", {
+        state: {
+          roomCode: roomCode.trim().toUpperCase(),
+          playerName: playerName.trim(),
+        },
+      });
     } catch (err) {
       setError(err.message || "Unknown error");
       setBusy(false);

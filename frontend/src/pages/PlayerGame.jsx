@@ -20,6 +20,13 @@ function fmtPts(n) {
   return r > 0 ? `+${r}` : `${r}`;
 }
 
+// Image URL PASTES
+const EMBEDDED_PLAYER_AVATAR_URLS = [
+  "https://i.redd.it/s1-thorfinn-was-looking-so-cool-v0-pos6jzra2lhf1.jpg?width=861&format=pjpg&auto=webp&s=41248ef69241b3c4da6274c7e5831934342feeb6",
+  "https://www.illumination.com/wp-content/uploads/2019/11/Minions_Kevin2.png",
+  "https://swordslice.com/cdn/shop/articles/Jujutsu-Kaisen-Season-2-Gojo-Satoru-fighting-Toji-MAPPA.webp?v=1736953868&width=1100",
+];
+
 export default function PlayerGame() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,6 +52,15 @@ export default function PlayerGame() {
   // scoring state
   const [myTotalScore, setMyTotalScore] = useState(null);
   const [myRoundBreakdown, setMyRoundBreakdown] = useState(null);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
+  const [selectedAvatarUrl] = useState(() => {
+    if (!EMBEDDED_PLAYER_AVATAR_URLS.length) return "";
+    const i = Math.floor(Math.random() * EMBEDDED_PLAYER_AVATAR_URLS.length);
+    return EMBEDDED_PLAYER_AVATAR_URLS[i];
+  });
+
+  const resolvedAvatarUrl = getImageUrl(selectedAvatarUrl);
+  const showPlayerAvatar = !!resolvedAvatarUrl && !avatarLoadError;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -395,10 +411,26 @@ export default function PlayerGame() {
       {scoreBadge}
       <header className="border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur sticky top-0 z-10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         <div className="mx-auto max-w-2xl px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-3 items-center">
             <div>
               <div className="text-xs text-indigo-300 uppercase tracking-wider font-semibold">Room Code</div>
               <div className="text-2xl font-bold text-purple-400 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">{roomCode}</div>
+            </div>
+            <div className="flex justify-center">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
+                <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center text-white text-sm font-bold">
+                  {showPlayerAvatar ? (
+                    <img
+                      src={resolvedAvatarUrl}
+                      alt={`${playerName} avatar`}
+                      className="h-full w-full object-cover"
+                      onError={() => setAvatarLoadError(true)}
+                    />
+                  ) : (
+                    playerName?.charAt(0).toUpperCase() || "?"
+                  )}
+                </div>
+              </div>
             </div>
             <div className="text-right">
               <div className="text-xs text-indigo-300 uppercase tracking-wider font-semibold">Your Name</div>
