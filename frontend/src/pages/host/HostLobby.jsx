@@ -3,12 +3,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { buildUrl, httpDelete } from "../../api/httpClient";
 import { getHostCode } from "../../utils/hostAuth";
 
+function getAvatarUrl(imagePath) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
+  if (imagePath.startsWith("http")) return imagePath;
+  return buildUrl(`/assets/${imagePath}`);
+}
+
 export default function HostLobby() {
   const location = useLocation();
   const navigate = useNavigate();
   const { roomCode } = location.state || {};
 
   const [players, setPlayers] = useState([]);
+  const [playerAvatars, setPlayerAvatars] = useState({});
+  const [avatarLoadErrors, setAvatarLoadErrors] = useState({});
   const [jurors, setJurors] = useState([]);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -24,6 +33,7 @@ export default function HostLobby() {
         if (res.ok) {
           const data = await res.json();
           setPlayers(data.players || []);
+          setPlayerAvatars(data.player_avatars || {});
           setJurors(data.jurors || []);
         }
       } catch (err) {
@@ -121,8 +131,19 @@ export default function HostLobby() {
               <ul className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {players.map((n, i) => (
                   <li key={i} className="bg-[#0a0523]/50 border border-indigo-500/20 rounded-xl px-4 py-3 text-indigo-100 font-medium flex items-center gap-3 shadow-inner">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                      {n.charAt(0).toUpperCase()}
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
+                      <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center text-white text-xs font-bold">
+                        {getAvatarUrl(playerAvatars[n]) && !avatarLoadErrors[n] ? (
+                          <img
+                            src={getAvatarUrl(playerAvatars[n])}
+                            alt={`${n} avatar`}
+                            className="h-full w-full object-cover"
+                            onError={() => setAvatarLoadErrors((prev) => ({ ...prev, [n]: true }))}
+                          />
+                        ) : (
+                          n.charAt(0).toUpperCase()
+                        )}
+                      </div>
                     </div>
                     <span className="truncate">{n}</span>
                   </li>

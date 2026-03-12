@@ -20,17 +20,10 @@ function fmtPts(n) {
   return r > 0 ? `+${r}` : `${r}`;
 }
 
-// Image URL PASTES
-const EMBEDDED_PLAYER_AVATAR_URLS = [
-  "https://i.redd.it/s1-thorfinn-was-looking-so-cool-v0-pos6jzra2lhf1.jpg?width=861&format=pjpg&auto=webp&s=41248ef69241b3c4da6274c7e5831934342feeb6",
-  "https://www.illumination.com/wp-content/uploads/2019/11/Minions_Kevin2.png",
-  "https://swordslice.com/cdn/shop/articles/Jujutsu-Kaisen-Season-2-Gojo-Satoru-fighting-Toji-MAPPA.webp?v=1736953868&width=1100",
-];
-
 export default function PlayerGame() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { roomCode, playerName } = location.state || {};
+  const { roomCode, playerName, playerAvatarUrl } = location.state || {};
 
   const [sessionStatus, setSessionStatus] = useState(null);
   const [error, setError] = useState("");
@@ -53,13 +46,9 @@ export default function PlayerGame() {
   const [myTotalScore, setMyTotalScore] = useState(null);
   const [myRoundBreakdown, setMyRoundBreakdown] = useState(null);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
-  const [selectedAvatarUrl] = useState(() => {
-    if (!EMBEDDED_PLAYER_AVATAR_URLS.length) return "";
-    const i = Math.floor(Math.random() * EMBEDDED_PLAYER_AVATAR_URLS.length);
-    return EMBEDDED_PLAYER_AVATAR_URLS[i];
-  });
 
-  const resolvedAvatarUrl = getImageUrl(selectedAvatarUrl);
+  const syncedAvatarUrl = playerAvatarUrl || sessionStatus?.player_avatars?.[playerName] || "";
+  const resolvedAvatarUrl = getImageUrl(syncedAvatarUrl);
   const showPlayerAvatar = !!resolvedAvatarUrl && !avatarLoadError;
 
   useEffect(() => {

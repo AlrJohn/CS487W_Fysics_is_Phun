@@ -12,6 +12,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { httpPostJson } from "../api/httpClient";
+import { pickRandomPlayerAvatarUrl } from "../utils/playerAvatars";
 
 export default function PlayerJoin() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function PlayerJoin() {
   const [playerName, setPlayerName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [selectedAvatarUrl] = useState(() => pickRandomPlayerAvatarUrl());
 
   const canJoin = roomCode.trim().length > 0 && playerName.trim().length > 0;
 
@@ -32,6 +34,7 @@ export default function PlayerJoin() {
         player_type: "player",
         room_code: roomCode.trim().toUpperCase(),
         player_name: playerName.trim(),
+        avatar_url: selectedAvatarUrl,
       });
 
       if (!res.ok) {
@@ -46,11 +49,14 @@ export default function PlayerJoin() {
         return;
       }
 
+      const assignedAvatarUrl = res?.data?.avatar_url || selectedAvatarUrl;
+
       // Success: navigate to player waiting/game view
       navigate("/player/game", {
         state: {
           roomCode: roomCode.trim().toUpperCase(),
           playerName: playerName.trim(),
+          playerAvatarUrl: assignedAvatarUrl,
         },
       });
     } catch (err) {

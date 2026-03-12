@@ -135,6 +135,7 @@ async def create_session(request: SessionRequest):
     active_sessions[room_code] = {
         "deck_id": deck_id,
         "players": [],
+        "player_avatars": {},
         "jurors": [],
         "status": "lobby",
         "enable_worst_fake": request.enable_worst_fake,
@@ -154,6 +155,7 @@ class JoinRequest(BaseModel):
     player_type: Optional[str] = None  # "player" or "juror"
     room_code: str
     player_name: str
+    avatar_url: Optional[str] = None
 
 @app.post("/join-session")
 async def join_session(request: JoinRequest):
@@ -173,6 +175,9 @@ async def join_session(request: JoinRequest):
     # 3. Add the player to the list
     if request.player_type == "player" or not request.player_type:
         active_sessions[code]["players"].append(request.player_name)
+        avatar_url = (request.avatar_url or "").strip()
+        if avatar_url:
+            active_sessions[code].setdefault("player_avatars", {})[request.player_name] = avatar_url
     
     elif request.player_type == "juror":
         active_sessions[code]["jurors"].append(request.player_name)
@@ -180,7 +185,8 @@ async def join_session(request: JoinRequest):
     return {
         "message": f"Welcome {request.player_name}!",
         "current_players": active_sessions[code]["players"],
-        "current_jurors": active_sessions[code]["jurors"]
+        "current_jurors": active_sessions[code]["jurors"],
+        "avatar_url": active_sessions[code].get("player_avatars", {}).get(request.player_name, ""),
     }
 
 @app.get("/session-status/{room_code}")
@@ -196,6 +202,7 @@ async def get_session_status(room_code: str):
         "room_code": code,
         "status": sess["status"],
         "players": sess["players"],
+        "player_avatars": sess.get("player_avatars", {}),
         "jurors": sess["jurors"],
         "scores": sess["scores"],
         "enable_worst_fake": sess.get("enable_worst_fake", False),
