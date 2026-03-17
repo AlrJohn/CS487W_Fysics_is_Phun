@@ -380,6 +380,7 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 idx = active_sessions[code].get("current_index")
                 subs = active_sessions[code].get("submissions", {}).get(idx, [])
                 fakes = [{"player": e["player"], "text": e["text"]} for e in subs if e.get("player") and e.get("text")]
+                fakes.append({"player": "Predefined Fake", "text": active_sessions[code].get("current_question", {}).get("Predefined_Fake", "")})
                 enable_worst_fake = active_sessions[code].get("enable_worst_fake", False)
                 total_jurors = len(active_sessions[code].get("jurors", []))
                 payload = {"type": "jury_phase", "fakes": fakes, "enable_worst_fake": enable_worst_fake}
