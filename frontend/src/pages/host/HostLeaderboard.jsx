@@ -13,6 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { buildUrl } from "../../api/httpClient";
 import confetti from "canvas-confetti";
 import { useDeck } from "../../state/DeckContext.jsx";
+import ResultViewer from "./ResultViewer";
 
 export default function HostLeaderboard() {
   const location = useLocation();
@@ -23,6 +24,7 @@ export default function HostLeaderboard() {
   const [submissions, setSubmissions] = useState({});
   const [choices, setChoices] = useState({});
   const [scores, setScores] = useState({});
+  const [showPrettyResults, setShowPrettyResults] = useState(false);
   const [roundBreakdown, setRoundBreakdown] = useState({});
   const { activeDeck } = useDeck();
 
@@ -45,7 +47,9 @@ export default function HostLeaderboard() {
       });
     }
 
-    const playerList = Array.from(players);
+    const playerList = Array.from(players).map((p) =>
+      Array.isArray(p) ? p[0] : p,
+    );
     const questionList = Object.values(activeDeck.questions);
 
     // 2. CREATE DYNAMIC HEADERS
@@ -403,25 +407,51 @@ export default function HostLeaderboard() {
           )}
 
           {/* Actions */}
-          <div className="mt-12 flex justify-center relative z-10 w-full max-w-2xl mx-auto">
-            <div className="w-full flex flex-col gap-4">
+          <div className="mt-12 flex flex-col items-center relative z-10 w-full">
+            <div className="w-full flex flex-col gap-3 items-center">
+              {/* View Details Button - Shorter and less wide */}
+              <button
+                onClick={() => setShowPrettyResults(!showPrettyResults)}
+                className="w-full max-w-md rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] hover:scale-[1.01] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-blue-500/50"
+              >
+                {showPrettyResults ? "Hide Game Details" : "View Game Details"}
+              </button>
+
+              {/* Download Button - Shorter and less wide */}
               <button
                 onClick={handleExportResults}
                 disabled={loading || players.length === 0}
-                className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.02] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full max-w-md rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:scale-[1.01] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                Export Results as CSV
+                Download Game Details (CSV)
               </button>
 
+              {/* Return Home Button - Shorter and less wide */}
               <button
                 onClick={onReturnHome}
-                className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-4 text-base font-bold text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] hover:scale-[1.02] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-indigo-500/50"
+                className="w-full max-w-md rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)] hover:scale-[1.01] active:scale-95 transition-all outline outline-2 outline-offset-2 outline-indigo-500/50"
               >
                 Return to Dashboard
               </button>
             </div>
           </div>
-        </div>
+        </div>{" "}
+        {/* End of card */}
+        {/* Full-width container for the results view */}
+        {showPrettyResults && (
+          <div className="mt-12 w-full animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="rounded-2xl border border-indigo-500/30 bg-[#0a0523]/60 backdrop-blur-xl p-4 md:p-8 shadow-2xl">
+              <ResultViewer
+                data={buildSessionResults(
+                  submissions,
+                  choices,
+                  scores,
+                  roundBreakdown,
+                )}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
