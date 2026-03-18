@@ -18,7 +18,8 @@ export default function HostHome() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-[#0a0523] to-[#0d011c]">
       {/* Top bar */}
-      <header className="sticky top-0 z-10 border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           {/* 1. Branding (Stays Left) */}
           <div className="flex items-center gap-4">
@@ -35,17 +36,17 @@ export default function HostHome() {
             </div>
           </div>
 
-          {/* 2. Button Group (Aligned Right) */}
+          {/* 2. Button Group (Aligned Right) - Styled to match Session Setup */}
           <div className="flex items-center gap-6">
             <button
               onClick={() => window.open("/join", "_blank")}
-              className="text-sm font-semibold text-indigo-300 hover:text-white underline underline-offset-4 transition-colors"
+              className="text-sm font-semibold uppercase tracking-wider text-indigo-300 hover:text-white transition-colors"
             >
               Player Join Page ↗
             </button>
             <button
               onClick={() => window.open("/jury", "_blank")}
-              className="text-sm font-semibold text-indigo-300 hover:text-white underline underline-offset-4 transition-colors"
+              className="text-sm font-semibold uppercase tracking-wider text-indigo-300 hover:text-white transition-colors"
             >
               Jury Join Page ↗
             </button>
@@ -107,19 +108,6 @@ export default function HostHome() {
 
         <div className="mt-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.05)] p-6">
           <ActiveDeckCard />
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.05)] p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-bl-full blur-[30px]"></div>
-          <h2 className="text-lg font-bold text-white mb-4">
-            Planned Host Flow
-          </h2>
-          <ol className="list-decimal space-y-2 pl-5 text-sm font-medium text-indigo-200/80">
-            <li>Session Setup (timers, options)</li>
-            <li>Create Session → display Join Code + Join URL + QR</li>
-            <li>Lobby: roster updates + assign Jury (min 1) + Start Game</li>
-            <li>Stage 1 → Stage 2 → Results → Final + Export</li>
-          </ol>
         </div>
       </main>
     </div>
