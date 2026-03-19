@@ -1,21 +1,33 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getHostCode, clearHostCode } from "../../utils/hostAuth";
 import ActiveDeckCard from "../../components/host/ActiveDeckCard.jsx";
-import { Link, useNavigate } from "react-router-dom";
-import { getHostCode } from "../../utils/hostAuth";
 
 export default function HostHome() {
   const navigate = useNavigate();
   const hostCode = getHostCode();
 
-  // 1. SECURITY GUARD: If no code is found, redirect to login
+  // 1. HARD GUARD & SECURITY CHECK
   useEffect(() => {
+    // Determine the "Truth" based on where we are running
+    const isVercel = window.location.hostname.includes("vercel.app");
+    const expectedCode = isVercel ? "FiP_2026" : "default_code";
+
     if (!hostCode) {
-      // We use window.location here to ensure a "hard" reset of the app state
+      // No code at all? Go to login.
+      window.location.href = "/host?reason=expired";
+      return;
+    }
+
+    if (hostCode !== expectedCode) {
+      // WRONG code for this environment? Wipe it and force login.
+      console.warn("Invalid host code detected for this environment.");
+      clearHostCode();
       window.location.href = "/host?reason=expired";
     }
   }, [hostCode]);
 
-  // 2. NAVIGATION HELPERS: These fix the "ReferenceError"
+  // 2. NAVIGATION HELPERS
   function navigateToDeckManager() {
     navigate("/host/decks");
   }
@@ -24,12 +36,15 @@ export default function HostHome() {
     navigate("/host/session");
   }
 
-  // 3. RENDER PREVENTER: Don't show the dashboard if redirecting
-  if (!hostCode) return null;
+  // 3. RENDER PREVENTER
+  // If the code is missing or wrong, we return null to keep the screen blank
+  // until the useEffect above kicks us out.
+  const isVercel = window.location.hostname.includes("vercel.app");
+  const expectedCode = isVercel ? "FiP_2026" : "default_code";
+  if (!hostCode || hostCode !== expectedCode) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-[#0a0523] to-[#0d011c]">
-      {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -45,7 +60,6 @@ export default function HostHome() {
               </div>
             </div>
           </div>
-
           <div className="flex items-center gap-6">
             <button
               onClick={() => window.open("/join", "_blank")}
@@ -63,10 +77,8 @@ export default function HostHome() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="mx-auto max-w-5xl px-6 py-10 relative">
         <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-
         <h1 className="text-3xl font-bold text-white tracking-wide">
           Host Dashboard
         </h1>
@@ -76,7 +88,6 @@ export default function HostHome() {
         </p>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {/* Create Session Card */}
           <section className="flex flex-col rounded-2xl border border-indigo-500/20 bg-indigo-950/20 backdrop-blur-md p-6 hover:bg-indigo-900/30 transition-all">
             <div className="flex-grow">
               <h2 className="text-xl font-bold text-white mb-2">
@@ -94,7 +105,6 @@ export default function HostHome() {
             </button>
           </section>
 
-          {/* Deck Manager Card */}
           <section className="flex flex-col rounded-2xl border border-indigo-500/20 bg-indigo-950/20 backdrop-blur-md p-6 hover:bg-indigo-900/30 transition-all">
             <div className="flex-grow">
               <h2 className="text-xl font-bold text-white mb-2">Decks (CSV)</h2>
@@ -113,7 +123,7 @@ export default function HostHome() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 backdrop-blur-md p-6">
-          <ActiveDeckCard />
+          <ActiveDeckCard onManageClick={navigateToDeckManager} />
         </div>
       </main>
     </div>

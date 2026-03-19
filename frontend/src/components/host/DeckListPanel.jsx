@@ -56,33 +56,18 @@ export default function DeckListPanel() {
   const [editingDeck, setEditingDeck] = useState(null);
 
   async function loadDecks() {
-  setBusy(true);
-  setError("");
+    setBusy(true);
+    setError("");
 
-  const res = await listDecksApi();
+    const res = await listDecksApi();
 
-  if (!res.ok) {
-    // THIS IS THE KEY: If the server says the code in localStorage is bad:
-    if (res.status === 401 || res.status === 403) {
-      clearHostCode(); // Delete the "default_codeee" from storage
-      
-      // Force the user out immediately
-      window.location.href = "/host?reason=expired"; 
-      return;
-    }
-    
-    setError(`Error: ${res.status}`);
-    setBusy(false);
-    return;
-  }
-
-      if ([404, 405, 501].includes(res.status)) {
-        setError(
-          "Deck listing is not available yet (server endpoint /decks not implemented).",
-        );
-      } else {
-        setError(`Failed to load decks (HTTP ${res.status}).`);
+    if (!res.ok) {
+      // If the server rejects the code saved in localStorage
+      if (res.status === 401 || res.status === 403) {
+        logoutHost();
+        return;
       }
+      setError(`Failed to load: ${res.status}`);
       setBusy(false);
       return;
     }
