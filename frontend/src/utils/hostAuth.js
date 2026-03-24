@@ -18,7 +18,7 @@ export function clearHostCode() {
  */
 export function getExpectedCode() {
   const isVercel = window.location.hostname.includes("vercel.app");
-  return isVercel ? "FIP-2026" : "default_code";
+  return isVercel ? "FIP-2026" : "FIP-2026";
 }
 
 // Checks if the code is present AND correct.
