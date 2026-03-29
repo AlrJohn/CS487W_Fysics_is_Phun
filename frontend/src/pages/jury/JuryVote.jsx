@@ -169,6 +169,20 @@ export default function JuryVote() {
           return;
         }
 
+        // Timer/stage messages — passive handling for future Stage 3 timer support
+        if (msg.type === "timer_update") {
+          // Future: display a countdown during jury phase when a jury timer is added
+          return;
+        }
+        if (msg.type === "stage_ready") {
+          // Future: handle jury stage_ready when Stage 3 is timed
+          return;
+        }
+        if (msg.type === "stage_transition") {
+          // Future: react to stage transitions (e.g., timer starts for jury phase)
+          return;
+        }
+
         // Ignore other message types
       } catch {
         // ignore parse errors
