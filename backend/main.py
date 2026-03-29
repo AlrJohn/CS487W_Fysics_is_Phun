@@ -182,8 +182,13 @@ async def join_session(request: JoinRequest):
     # 2. Check if the game is already started
     if active_sessions[code]["status"] != "lobby":
         raise HTTPException(status_code=400, detail="Game already in progress")
-    
-    # 3. Add the player to the list
+
+    # 3. Check for duplicate nickname across players and jurors
+    existing_names = active_sessions[code]["players"] + active_sessions[code]["jurors"]
+    if request.player_name in existing_names:
+        raise HTTPException(status_code=400, detail="Nickname already taken. Please choose a different name.")
+
+    # 4. Add the player to the list
     if request.player_type == "player" or not request.player_type:
         active_sessions[code]["players"].append(request.player_name)
         avatar_url = (request.avatar_url or "").strip()
