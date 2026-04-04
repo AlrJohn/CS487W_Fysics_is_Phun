@@ -12,12 +12,30 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useDeck } from "../../state/DeckContext.jsx";
 import { buildUrl, buildWsUrl } from "../../api/httpClient";
 import { getHostCode } from "../../utils/hostAuth";
+import { pickRandomPlayerAvatarUrl } from "../../utils/playerAvatars";
 
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
   if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
   if (imagePath.startsWith("http")) return imagePath;
   return buildUrl(`/assets/${imagePath}`);
+}
+
+function getAvatarUrl(imagePath) {
+  if (!imagePath) return "";
+  const normalized = String(imagePath).trim();
+  if (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:")
+  ) {
+    return normalized;
+  }
+  if (normalized.startsWith("/")) {
+    return normalized;
+  }
+  return buildUrl(`/assets/${normalized.replace(/^assets\//, "")}`);
 }
 
 function fmtPts(n) {
@@ -50,7 +68,11 @@ export default function HostGame() {
   const [currentStage, setCurrentStage] = useState(null);
   const [stageReadyReason, setStageReadyReason] = useState(null);
   const [wsSendError, setWsSendError] = useState(false);
+  const [hostAvatarUrl, setHostAvatarUrl] = useState("");
+  const [fallbackHostAvatarUrl] = useState(() => pickRandomPlayerAvatarUrl());
   const wsRef = React.useRef(null);
+  const displayHostAvatarUrl =
+    getAvatarUrl(hostAvatarUrl) || getAvatarUrl(fallbackHostAvatarUrl);
 
   // Helper: send over WS, flag error if not connected
   function wsSend(payload) {
@@ -142,6 +164,29 @@ export default function HostGame() {
       wsRef.current?.close();
       wsRef.current = null;
     };
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!roomCode) return;
+
+    async function refreshHostAvatar() {
+      try {
+        const hostCode = getHostCode?.() || "";
+        const headers = hostCode ? { "X-Host-Code": hostCode } : {};
+        const res = await fetch(buildUrl(`/session-status/${roomCode}`), {
+          headers,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setHostAvatarUrl(data?.player_avatars?.Host || "");
+      } catch {
+        // Keep fallback avatar when status fetch fails.
+      }
+    }
+
+    refreshHostAvatar();
+    const iv = setInterval(refreshHostAvatar, 2000);
+    return () => clearInterval(iv);
   }, [roomCode]);
 
   if (!activeDeck || !roomCode) {
@@ -261,14 +306,25 @@ export default function HostGame() {
     <div className="min-h-screen bg-[#050114] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-[#0a0523] to-[#050114] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-indigo-500/20 bg-[#0a0523]/80 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto grid max-w-5xl grid-cols-3 items-center px-6 py-4">
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-indigo-400/80 mb-0.5">Host View</div>
             <div className="font-bold text-white text-lg tracking-wide bg-gradient-to-r from-indigo-200 to-purple-200 bg-clip-text text-transparent">
               Game in Progress
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex justify-center">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
+              <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center">
+                <img
+                  src={displayHostAvatarUrl}
+                  alt="Host avatar"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-6">
             <div className="text-sm font-medium text-indigo-200">
               Room: <span className="font-bold text-emerald-400 ml-1 tracking-wider">{roomCode}</span>
             </div>

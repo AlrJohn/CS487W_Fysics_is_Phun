@@ -5,13 +5,6 @@ import { getHostCode } from "../../utils/hostAuth";
 import playerQr from "../../assets/player_qr.png";
 import juryQr from "../../assets/jury_qr.png";
 
-function getAvatarUrl(imagePath) {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
-  if (imagePath.startsWith("http")) return imagePath;
-  return buildUrl(`/assets/${imagePath}`);
-}
-
 export default function HostLobby() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,7 +12,6 @@ export default function HostLobby() {
 
   const [players, setPlayers] = useState([]);
   const [playerAvatars, setPlayerAvatars] = useState({});
-  const [avatarLoadErrors, setAvatarLoadErrors] = useState({});
   const [jurors, setJurors] = useState([]);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -193,22 +185,11 @@ export default function HostLobby() {
                   >
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
                       <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center text-white text-xs font-bold">
-                        {getAvatarUrl(playerAvatars[n]) &&
-                        !avatarLoadErrors[n] ? (
-                          <img
-                            src={getAvatarUrl(playerAvatars[n])}
-                            alt={`${n} avatar`}
-                            className="h-full w-full object-cover"
-                            onError={() =>
-                              setAvatarLoadErrors((prev) => ({
-                                ...prev,
-                                [n]: true,
-                              }))
-                            }
-                          />
-                        ) : (
-                          n.charAt(0).toUpperCase()
-                        )}
+                        <img
+                          src={playerAvatars[n] || ""}
+                          alt={`${n} avatar`}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                     </div>
                     <span className="truncate">{n}</span>

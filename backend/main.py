@@ -126,6 +126,7 @@ class SessionRequest(BaseModel):
     enable_worst_fake: bool = False
     stage1_duration: int = 60
     stage2_duration: int = 45
+    host_avatar_url: Optional[str] = None
 
 @app.post("/create-session")
 async def create_session(request: SessionRequest):
@@ -134,10 +135,12 @@ async def create_session(request: SessionRequest):
     
     room_code = str(uuid.uuid4())[:4].upper()
     
+    host_avatar_url = (request.host_avatar_url or "").strip()
+
     active_sessions[room_code] = {
         "deck_id": deck_id,
         "players": [],
-        "player_avatars": {},
+        "player_avatars": {"Host": host_avatar_url} if host_avatar_url else {},
         "jurors": [],
         "status": "lobby",
         "enable_worst_fake": request.enable_worst_fake,

@@ -6,12 +6,28 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { buildUrl, buildWsUrl } from "../api/httpClient";
+import { pickRandomPlayerAvatarUrl } from "../utils/playerAvatars";
 
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
-  if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
-  if (imagePath.startsWith("http")) return imagePath;
-  return buildUrl(`/assets/${imagePath}`);
+  const normalized = String(imagePath).trim();
+
+  // Keep already-resolved URLs untouched.
+  if (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:")
+  ) {
+    return normalized;
+  }
+
+  // Preserve absolute app paths like /assets/... (prod) and /src/assets/... (dev).
+  if (normalized.startsWith("/")) {
+    return normalized;
+  }
+
+  return buildUrl(`/assets/${normalized.replace(/^assets\//, "")}`);
 }
 
 function fmtPts(n) {
@@ -48,6 +64,7 @@ export default function PlayerGame() {
   const [myTotalScore, setMyTotalScore] = useState(null);
   const [myRoundBreakdown, setMyRoundBreakdown] = useState(null);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
+  const [fallbackAvatarUrl] = useState(() => pickRandomPlayerAvatarUrl());
 
   // timer / stage state
   const [timerRemaining, setTimerRemaining] = useState(null);
@@ -60,7 +77,14 @@ export default function PlayerGame() {
   const syncedAvatarUrl =
     playerAvatarUrl || sessionStatus?.player_avatars?.[playerName] || "";
   const resolvedAvatarUrl = getImageUrl(syncedAvatarUrl);
-  const showPlayerAvatar = !!resolvedAvatarUrl && !avatarLoadError;
+  const displayAvatarUrl =
+    resolvedAvatarUrl && !avatarLoadError
+      ? resolvedAvatarUrl
+      : getImageUrl(fallbackAvatarUrl);
+
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [resolvedAvatarUrl]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -279,13 +303,25 @@ export default function PlayerGame() {
         {scoreBadge}
         <header className="border-b border-indigo-900/50 bg-[#0a0523]/80 backdrop-blur sticky top-0 z-10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
           <div className="mx-auto max-w-2xl px-6 py-4">
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-3 items-center">
               <div>
                 <div className="text-xs text-indigo-300 uppercase tracking-wider font-semibold">
                   Room Code
                 </div>
                 <div className="text-2xl font-bold text-purple-400 drop-shadow-[0_0_5px_rgba(168,85,247,0.4)]">
                   {roomCode}
+                </div>
+              </div>
+              <div className="flex justify-center">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
+                  <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center text-white text-sm font-bold">
+                    <img
+                      src={displayAvatarUrl}
+                      alt={`${playerName} avatar`}
+                      className="h-full w-full object-cover"
+                      onError={() => setAvatarLoadError(true)}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="text-right">
@@ -595,16 +631,12 @@ export default function PlayerGame() {
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px] shadow-md">
                 <div className="h-full w-full rounded-full bg-[#0a0523] overflow-hidden flex items-center justify-center text-white text-sm font-bold">
-                  {showPlayerAvatar ? (
-                    <img
-                      src={resolvedAvatarUrl}
-                      alt={`${playerName} avatar`}
-                      className="h-full w-full object-cover"
-                      onError={() => setAvatarLoadError(true)}
-                    />
-                  ) : (
-                    playerName?.charAt(0).toUpperCase() || "?"
-                  )}
+                  <img
+                    src={displayAvatarUrl}
+                    alt={`${playerName} avatar`}
+                    className="h-full w-full object-cover"
+                    onError={() => setAvatarLoadError(true)}
+                  />
                 </div>
               </div>
             </div>
