@@ -1,10 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
-from deck_manager import validate_and_parse_csv
+from deck_manager import validate_and_parse_csv, zip_deck, extract_deck
 from generate_game_summary import generate_excel_report
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from typing import List, Optional
@@ -875,5 +875,49 @@ async def upload_asset(file: UploadFile = File(...), _ok: bool = Depends(require
 class HostLoginRequest(BaseModel):
     host_code: str
 
+class ZipDeckRequest(BaseModel):
+    deck_filename: str
+    zip_filename: Optional[str] = None
+
+@app.post("/zip-deck")
+async def api_zip_deck(
+    request: ZipDeckRequest,
+    background_tasks: BackgroundTasks,
+    _ok: bool = Depends(require_host),
+):
+    """Create a .deck zip file containing the deck CSV and referenced images."""
+    deck_path = os.path.join("decks", request.deck_filename)
+    if not os.path.isfile(deck_path):
+        raise HTTPException(status_code=404, detail="Deck file not found")
+
+    zip_filename = request.zip_filename or f"{os.path.splitext(request.deck_filename)[0]}.deck"
+    zip_path = os.path.join("decks", zip_filename)
+
+    try:
+        zip_deck(deck_path, zip_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to zip deck: {str(e)}")
+
+    background_tasks.add_task(os.remove, zip_path)
+    return FileResponse(path=zip_path, filename=zip_filename, media_type="application/zip")
+
+@app.post("/extract-deck")
+async def api_extract_deck(file: UploadFile = File(...), _ok: bool = Depends(require_host)):
+    """Extract a .deck zip file uploaded by the user."""
+    if not file.filename.lower().endswith(".deck"):
+        raise HTTPException(status_code=400, detail="Uploaded file must be a .deck file")
+
+    zip_path = os.path.join("decks", file.filename)
+    with open(zip_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    try:
+        extract_deck(zip_path)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=f"Failed to extract deck: {str(e)}")
+
+    os.remove(zip_path)
+    return {"status": "success", "extracted_from": file.filename}
 
 
