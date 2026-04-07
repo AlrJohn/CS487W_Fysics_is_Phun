@@ -126,6 +126,7 @@ class SessionRequest(BaseModel):
     enable_worst_fake: bool = False
     stage1_duration: int = 60
     stage2_duration: int = 45
+    stage3_duration: int = 60
     host_avatar_url: Optional[str] = None
 
 @app.post("/create-session")
@@ -154,6 +155,7 @@ async def create_session(request: SessionRequest):
         # Timer/stage fields
         "stage1_duration": request.stage1_duration,
         "stage2_duration": request.stage2_duration,
+        "stage3_duration": request.stage3_duration,
         "timer_task": None,               # asyncio.Task | None
         "timer_remaining": 0,             # int seconds remaining
         "timer_paused": False,            # bool
@@ -350,7 +352,12 @@ async def _start_stage(code: str, stage: int):
     sess = active_sessions.get(code)
     if not sess:
         return
-    duration = sess["stage1_duration"] if stage == 1 else sess["stage2_duration"]
+    if stage == 1:
+        duration = sess["stage1_duration"]
+    elif stage == 2:
+        duration = sess["stage2_duration"]
+    elif stage == 3:
+        duration = sess["stage3_duration"]
     sess["timer_task"] = asyncio.create_task(_run_stage_timer(code, stage, duration))
 
 
@@ -588,23 +595,27 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 await _broadcast(code, payload)
                 # Broadcast initial jury vote progress (0/N) so host displays total jurors immediately
                 await _broadcast(code, {"type": "jury_vote_count", "count": 0, "total_jurors": total_jurors})
+                # Start the jury voting timer (stage 3)
+                await _start_stage(code, 3)
             elif msg.get("type") == "jury_vote":
-                # a juror submitted their vote
-                idx = active_sessions[code].get("current_index")
-                juror_name = msg.get("juror_name", "").strip()
-                best = msg.get("best_fake_player")
-                worst = msg.get("worst_fake_player")
-                if juror_name:
-                    jury_votes = active_sessions[code].setdefault("jury_votes", {})
-                    jury_votes.setdefault(idx, {})[juror_name] = {"best": best, "worst": worst}
-                    # broadcast vote count to all (host uses it to track progress)
-                    total_jurors = len(active_sessions[code].get("jurors", []))
-                    vote_count = len(jury_votes.get(idx, {}))
-                    for ws in session_sockets.get(code, [])[:]:
-                        try:
-                            await ws.send_json({"type": "jury_vote_count", "count": vote_count, "total_jurors": total_jurors})
-                        except Exception:
-                            pass
+                # a juror submitted their vote — only accept if jury phase is still running
+                sess = active_sessions[code]
+                if sess.get("jury_phase_active") and sess.get("stage_status") == "running" and sess.get("current_stage") == 3:
+                    idx = sess.get("current_index")
+                    juror_name = msg.get("juror_name", "").strip()
+                    best = msg.get("best_fake_player")
+                    worst = msg.get("worst_fake_player")
+                    if juror_name:
+                        jury_votes = sess.setdefault("jury_votes", {})
+                        jury_votes.setdefault(idx, {})[juror_name] = {"best": best, "worst": worst}
+                        # broadcast vote count to all (host uses it to track progress)
+                        total_jurors = len(sess.get("jurors", []))
+                        vote_count = len(jury_votes.get(idx, {}))
+                        for ws in session_sockets.get(code, [])[:]:
+                            try:
+                                await ws.send_json({"type": "jury_vote_count", "count": vote_count, "total_jurors": total_jurors})
+                            except Exception:
+                                pass
             elif msg.get("type") == "jury_results":
                 # host requests jury scoring — compute fractional points and broadcast round_scores
                 idx = active_sessions[code].get("current_index")
@@ -700,7 +711,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 await _broadcast(code, payload)
             elif msg.get("type") == "pause":
                 sess = active_sessions[code]
-                if sess.get("stage_status") == "running":
+                # Only allow pause for stages 1 and 2, not for jury (stage 3)
+                if sess.get("stage_status") == "running" and sess.get("current_stage") in (1, 2):
                     sess["timer_paused"] = True
                     sess["stage_status"] = "paused"
                     await _broadcast(code, {
@@ -712,7 +724,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                     })
             elif msg.get("type") == "resume":
                 sess = active_sessions[code]
-                if sess.get("stage_status") == "paused":
+                # Only allow resume for stages 1 and 2, not for jury (stage 3)
+                if sess.get("stage_status") == "paused" and sess.get("current_stage") in (1, 2):
                     sess["timer_paused"] = False
                     sess["stage_status"] = "running"
                     await _broadcast(code, {
@@ -724,7 +737,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                     })
             elif msg.get("type") == "extend_timer":
                 sess = active_sessions[code]
-                if sess.get("stage_status") in ("running", "paused"):
+                # Only allow extend for stages 1 and 2, not for jury (stage 3)
+                if sess.get("stage_status") in ("running", "paused") and sess.get("current_stage") in (1, 2):
                     sess["timer_remaining"] = sess.get("timer_remaining", 0) + 15
                     await _broadcast(code, {
                         "type": "timer_update",
