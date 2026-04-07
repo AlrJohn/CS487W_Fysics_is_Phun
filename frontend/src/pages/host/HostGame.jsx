@@ -253,12 +253,9 @@ export default function HostGame() {
         } else if (phase === "answers") {
           requestResults();
         } else if (phase === "results") {
-          // New: Automatically trigger Jury phase from Results
           startJuryPhase();
         } else if (phase === "jury") {
           requestJuryResults();
-        } else if (phase === "roundLeaderboard") {
-          if (!isLastQuestion) goToNext();
         }
       }, 3000);
     }
