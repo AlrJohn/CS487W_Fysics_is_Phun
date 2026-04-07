@@ -39,8 +39,10 @@ function fmtPts(n) {
 export default function PlayerGame() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { roomCode, playerName, playerAvatarUrl } = location.state ||
-    JSON.parse(sessionStorage.getItem("playerSession") || "null") || {};
+  const { roomCode, playerName, playerAvatarUrl } =
+    location.state ||
+    JSON.parse(sessionStorage.getItem("playerSession") || "null") ||
+    {};
 
   const [sessionStatus, setSessionStatus] = useState(null);
   const [error, setError] = useState("");
@@ -70,9 +72,9 @@ export default function PlayerGame() {
   const [timerRemaining, setTimerRemaining] = useState(null);
   const [timerPaused, setTimerPaused] = useState(false);
   const [timerStatus, setTimerStatus] = useState("idle"); // "running" | "paused" | "ready" | "idle"
-  const [stageLocked, setStageLocked] = useState(false);  // true when stage ended or paused
+  const [stageLocked, setStageLocked] = useState(false); // true when stage ended or paused
   const [hasSubmitted, setHasSubmitted] = useState(false); // true after first fake submit
-  const [timerError, setTimerError] = useState(null);      // server-sent rejection message
+  const [timerError, setTimerError] = useState(null); // server-sent rejection message
 
   const syncedAvatarUrl =
     playerAvatarUrl || sessionStatus?.player_avatars?.[playerName] || "";
@@ -373,15 +375,22 @@ export default function PlayerGame() {
 
             {/* Timer countdown — shown during Stage 1 and Stage 2 */}
             {timerRemaining !== null && timerStatus !== "idle" && (
-              <div className={`mb-4 px-4 py-2 rounded-xl text-center font-black text-2xl tabular-nums ${
-                timerStatus === "paused" ? "text-yellow-400 bg-yellow-950/30 border border-yellow-500/20" :
-                timerStatus === "ready"  ? "text-amber-400 bg-amber-950/30 border border-amber-500/20" :
-                timerRemaining <= 10     ? "text-red-400 bg-red-950/30 border border-red-500/20 animate-pulse" :
-                                           "text-white bg-indigo-950/30 border border-indigo-500/20"
-              }`}>
-                {timerStatus === "ready"  ? "Waiting for host..." :
-                 timerStatus === "paused" ? `Paused — ${timerRemaining}s` :
-                 `${timerRemaining}s`}
+              <div
+                className={`mb-4 px-4 py-2 rounded-xl text-center font-black text-2xl tabular-nums ${
+                  timerStatus === "paused"
+                    ? "text-yellow-400 bg-yellow-950/30 border border-yellow-500/20"
+                    : timerStatus === "ready"
+                      ? "text-amber-400 bg-amber-950/30 border border-amber-500/20"
+                      : timerRemaining <= 10
+                        ? "text-red-400 bg-red-950/30 border border-red-500/20 animate-pulse"
+                        : "text-white bg-indigo-950/30 border border-indigo-500/20"
+                }`}
+              >
+                {timerStatus === "ready"
+                  ? "Waiting for host..."
+                  : timerStatus === "paused"
+                    ? `Paused — ${timerRemaining}s`
+                    : `${timerRemaining}s`}
               </div>
             )}
 
@@ -469,31 +478,37 @@ export default function PlayerGame() {
             {/* Choose phase */}
             {phase === "choose" && (
               <div className="mt-8 space-y-4">
-                {answers.map((ans, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      if (myChoice || stageLocked) return;
-                      setMyChoice(ans);
-                      if (
-                        wsRef.current &&
-                        wsRef.current.readyState === WebSocket.OPEN
-                      ) {
-                        wsRef.current.send(
-                          JSON.stringify({
-                            type: "choice",
-                            player: playerName,
-                            answer: ans,
-                          }),
-                        );
-                      }
-                    }}
-                    disabled={!!myChoice || stageLocked}
-                    className={`w-full rounded-xl border ${myChoice === ans ? "border-purple-500 bg-purple-900/40 shadow-[0_0_15px_rgba(168,85,247,0.3)]" : "border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/60 hover:border-purple-400"} px-6 py-4 text-lg font-semibold text-white transition-all disabled:opacity-70`}
-                  >
-                    {ans}
-                  </button>
-                ))}
+                {answers
+                  /* FILTER: Remove the answer that matches what this 
+         specific player typed earlier in the 'submit' phase. 
+      */
+                  .filter((ans) => ans !== myFake)
+                  .map((ans, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (myChoice || stageLocked) return;
+                        setMyChoice(ans);
+                        if (
+                          wsRef.current &&
+                          wsRef.current.readyState === WebSocket.OPEN
+                        ) {
+                          wsRef.current.send(
+                            JSON.stringify({
+                              type: "choice",
+                              player: playerName,
+                              answer: ans,
+                            }),
+                          );
+                        }
+                      }}
+                      disabled={!!myChoice || stageLocked}
+                      className={`w-full rounded-xl border ${myChoice === ans ? "border-purple-500 bg-purple-900/40 shadow-[0_0_15px_rgba(168,85,247,0.3)]" : "border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/60 hover:border-purple-400"} px-6 py-4 text-lg font-semibold text-white transition-all disabled:opacity-70`}
+                    >
+                      {ans}
+                    </button>
+                  ))}
+
                 {myChoice && (
                   <div className="mt-4 flex flex-col items-center justify-center space-y-3">
                     <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-purple-500 rounded-full animate-spin"></div>
