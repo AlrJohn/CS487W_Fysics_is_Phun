@@ -7,7 +7,7 @@ import { pickRandomPlayerAvatarUrl } from "../../utils/playerAvatars";
 
 const DEFAULTS = {
   stage1Seconds: 60,
-  stage2Seconds: 45,
+  stage2Seconds: 30,
   enableWorstFake: false,
 };
 
