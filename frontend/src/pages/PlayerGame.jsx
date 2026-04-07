@@ -10,9 +10,14 @@ import { pickRandomPlayerAvatarUrl } from "../utils/playerAvatars";
 
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
-  const normalized = String(imagePath).trim();
+  if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
+  if (imagePath.startsWith("http")) return imagePath;
+  return buildUrl(`/assets/${imagePath}`);
+}
 
-  // Keep already-resolved URLs untouched.
+function getAvatarUrl(imagePath) {
+  if (!imagePath) return "";
+  const normalized = String(imagePath).trim();
   if (
     normalized.startsWith("http://") ||
     normalized.startsWith("https://") ||
@@ -21,12 +26,9 @@ function getImageUrl(imagePath) {
   ) {
     return normalized;
   }
-
-  // Preserve absolute app paths like /assets/... (prod) and /src/assets/... (dev).
   if (normalized.startsWith("/")) {
     return normalized;
   }
-
   return buildUrl(`/assets/${normalized.replace(/^assets\//, "")}`);
 }
 
@@ -78,11 +80,11 @@ export default function PlayerGame() {
 
   const syncedAvatarUrl =
     playerAvatarUrl || sessionStatus?.player_avatars?.[playerName] || "";
-  const resolvedAvatarUrl = getImageUrl(syncedAvatarUrl);
+  const resolvedAvatarUrl = getAvatarUrl(syncedAvatarUrl);
   const displayAvatarUrl =
     resolvedAvatarUrl && !avatarLoadError
       ? resolvedAvatarUrl
-      : getImageUrl(fallbackAvatarUrl);
+      : getAvatarUrl(fallbackAvatarUrl);
 
   useEffect(() => {
     setAvatarLoadError(false);
