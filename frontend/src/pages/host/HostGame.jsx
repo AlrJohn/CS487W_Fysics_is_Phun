@@ -58,6 +58,7 @@ export default function HostGame() {
   const [answerPool, setAnswerPool] = useState([]);
   const [resultStats, setResultStats] = useState(null);
   const [juryVoteCount, setJuryVoteCount] = useState(0);
+  const [totalPlayers, setTotalPlayers] = useState(0);
   const [totalJurors, setTotalJurors] = useState(0);
   const [roundBreakdown, setRoundBreakdown] = useState(null);
   const [currentScores, setCurrentScores] = useState({});
@@ -186,6 +187,8 @@ export default function HostGame() {
         if (!res.ok) return;
         const data = await res.json();
         setHostAvatarUrl(data?.player_avatars?.Host || "");
+        setTotalPlayers(data?.players?.length || 0);
+        setTotalJurors(data?.jurors?.length || 0);
       } catch {
         // Keep fallback avatar when status fetch fails.
       }
@@ -422,37 +425,20 @@ export default function HostGame() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* Phase badge */}
               <div
-                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${
-                  phase === "collecting"
-                    ? "bg-indigo-900/50 border-indigo-500/40 text-indigo-300"
-                    : phase === "answers"
-                      ? "bg-purple-900/50 border-purple-500/40 text-purple-300"
-                      : phase === "results"
-                        ? "bg-emerald-900/50 border-emerald-500/40 text-emerald-300"
-                        : phase === "jury"
-                          ? "bg-amber-900/50 border-amber-500/40 text-amber-300"
-                          : "bg-teal-900/50 border-teal-500/40 text-teal-300"
+                className={`px-4 py-2 rounded-full text-sm font-bold border ${
+                  phase === "jury"
+                    ? "bg-amber-900/50 border-amber-500/40 text-amber-300"
+                    : phase === "roundLeaderboard"
+                      ? "bg-teal-900/50 border-teal-500/40 text-teal-300"
+                    : "bg-indigo-900/50 border-indigo-500/40 text-indigo-300"
                 }`}
               >
-                {phase === "collecting"
-                  ? "Collecting Fakes"
-                  : phase === "answers"
-                    ? "Players Choosing"
-                    : phase === "results"
-                      ? "Results"
-                      : phase === "jury"
-                        ? "Jury Voting"
-                        : "Round Scores"}
-              </div>
-              <div className="w-48 h-3 bg-[#0a0523]/60 border border-indigo-500/30 rounded-full overflow-hidden shadow-inner">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700 ease-out"
-                  style={{
-                    width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%`,
-                  }}
-                />
+                {phase === "roundLeaderboard"
+                  ? "All Done!"
+                  : phase === "jury"
+                  ? `${juryVoteCount}/${totalJurors} Jurors Voted`
+                  : `${submissions.length}/${totalPlayers} Players Submitted`}
               </div>
             </div>
           </div>
