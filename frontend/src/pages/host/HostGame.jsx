@@ -400,7 +400,7 @@ export default function HostGame() {
               }`}>
                 {timerStatus === "ready" ? "READY" : `${timerRemaining}s`}
               </div>
-              {(timerStatus === "running" || timerStatus === "paused") && (
+              {(timerStatus === "running" || timerStatus === "paused") && currentStage !== 3 && (
                 <div className="flex gap-2">
                   {timerStatus === "running" ? (
                     <button
