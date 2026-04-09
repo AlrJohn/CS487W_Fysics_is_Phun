@@ -125,7 +125,7 @@ class SessionRequest(BaseModel):
     deck_id: str
     enable_worst_fake: bool = False
     stage1_duration: int = 60
-    stage2_duration: int = 45
+    stage2_duration: int = 30
     stage3_duration: int = 60
     host_avatar_url: Optional[str] = None
 
@@ -711,8 +711,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                 await _broadcast(code, payload)
             elif msg.get("type") == "pause":
                 sess = active_sessions[code]
-                # Only allow pause for stages 1 and 2, not for jury (stage 3)
-                if sess.get("stage_status") == "running" and sess.get("current_stage") in (1, 2):
+                # Allow pause for all three stages, but only if currently running
+                if sess.get("stage_status") == "running" and sess.get("current_stage") in (1, 2, 3):
                     sess["timer_paused"] = True
                     sess["stage_status"] = "paused"
                     await _broadcast(code, {
@@ -724,8 +724,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                     })
             elif msg.get("type") == "resume":
                 sess = active_sessions[code]
-                # Only allow resume for stages 1 and 2, not for jury (stage 3)
-                if sess.get("stage_status") == "paused" and sess.get("current_stage") in (1, 2):
+                # Allow resume for all three stages, but only if currently paused
+                if sess.get("stage_status") == "paused" and sess.get("current_stage") in (1, 2, 3):
                     sess["timer_paused"] = False
                     sess["stage_status"] = "running"
                     await _broadcast(code, {
@@ -737,8 +737,8 @@ async def session_ws(websocket: WebSocket, room_code: str):
                     })
             elif msg.get("type") == "extend_timer":
                 sess = active_sessions[code]
-                # Only allow extend for stages 1 and 2, not for jury (stage 3)
-                if sess.get("stage_status") in ("running", "paused") and sess.get("current_stage") in (1, 2):
+                # Allow extend for all three stages
+                if sess.get("stage_status") in ("running", "paused") and sess.get("current_stage") in (1, 2, 3):
                     sess["timer_remaining"] = sess.get("timer_remaining", 0) + 15
                     await _broadcast(code, {
                         "type": "timer_update",

@@ -443,7 +443,7 @@ export default function HostGame() {
             </div>
           </div>
 
-          {/* Timer bar — shown during Stage 1 and Stage 2 */}
+          {/* Timer bar — shown during Stage 1, Stage 2, and Stage 3 */}
           {timerRemaining !== null && timerStatus !== "idle" && (
             <div className="mt-4 flex items-center gap-3 relative z-10">
               <div
@@ -460,7 +460,7 @@ export default function HostGame() {
                 {timerStatus === "ready" ? "READY" : `${timerRemaining}s`}
               </div>
               {(timerStatus === "running" || timerStatus === "paused") &&
-                currentStage !== 3 && (
+                (
                   <div className="flex gap-2">
                     {timerStatus === "running" ? (
                       <button
