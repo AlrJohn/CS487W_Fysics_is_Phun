@@ -16,9 +16,17 @@ import { pickRandomPlayerAvatarUrl } from "../../utils/playerAvatars";
 
 function getImageUrl(imagePath) {
   if (!imagePath) return null;
-  if (imagePath.startsWith("/assets/")) return buildUrl(imagePath);
-  if (imagePath.startsWith("http")) return imagePath;
-  return buildUrl(`/assets/${imagePath}`);
+  const normalized = String(imagePath).trim();
+  if (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("data:") ||
+    normalized.startsWith("blob:")
+  ) {
+    return normalized;
+  }
+  if (normalized.startsWith("/")) return buildUrl(normalized);
+  return buildUrl(`/assets/${normalized.replace(/^assets\//, "")}`);
 }
 
 function getAvatarUrl(imagePath) {
@@ -58,8 +66,13 @@ export default function HostGame() {
   const [answerPool, setAnswerPool] = useState([]);
   const [resultStats, setResultStats] = useState(null);
   const [juryVoteCount, setJuryVoteCount] = useState(0);
+  const [playerVoteCount, setPlayerVoteCount] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [totalJurors, setTotalJurors] = useState(0);
+  const [votedPlayers, setVotedPlayers] = useState([]);
+  const [waitingPlayers, setWaitingPlayers] = useState([]);
+  const [votedJurors, setVotedJurors] = useState([]);
+  const [waitingJurors, setWaitingJurors] = useState([]);
   const [roundBreakdown, setRoundBreakdown] = useState(null);
   const [currentScores, setCurrentScores] = useState({});
   const [autoProgress, setAutoProgress] = useState(false);
@@ -126,16 +139,25 @@ export default function HostGame() {
           const msg = JSON.parse(evt.data);
           console.log("Received message:", msg.type, msg);
           if (msg.type === "submission") {
-            setSubmissions((prev) => [...prev, msg.player]);
+            setSubmissions((prev) =>
+              prev.includes(msg.player) ? prev : [...prev, msg.player],
+            );
           } else if (msg.type === "answers") {
             setAnswerPool(msg.answers || []);
             setPhase("answers");
+          } else if (msg.type === "choice_vote_count") {
+            setPlayerVoteCount(msg.count);
+            setTotalPlayers(msg.total_players);
+            setVotedPlayers(Array.isArray(msg.voted_players) ? msg.voted_players : []);
+            setWaitingPlayers(Array.isArray(msg.waiting_players) ? msg.waiting_players : []);
           } else if (msg.type === "results") {
             setResultStats(msg.stats);
             setPhase("results");
           } else if (msg.type === "jury_vote_count") {
             setJuryVoteCount(msg.count);
             setTotalJurors(msg.total_jurors);
+            setVotedJurors(Array.isArray(msg.voted_jurors) ? msg.voted_jurors : []);
+            setWaitingJurors(Array.isArray(msg.waiting_jurors) ? msg.waiting_jurors : []);
           } else if (msg.type === "round_scores") {
             setRoundBreakdown(msg.breakdown || {});
             setCurrentScores(msg.scores || {});
@@ -187,8 +209,18 @@ export default function HostGame() {
         if (!res.ok) return;
         const data = await res.json();
         setHostAvatarUrl(data?.player_avatars?.Host || "");
-        setTotalPlayers(data?.players?.length || 0);
-        setTotalJurors(data?.jurors?.length || 0);
+        const players = Array.isArray(data?.players) ? data.players : [];
+        setTotalPlayers(players.length);
+        setWaitingPlayers((prev) => {
+          if (playerVoteCount > 0 || votedPlayers.length > 0) return prev;
+          return players;
+        });
+        const jurors = Array.isArray(data?.jurors) ? data.jurors : [];
+        setTotalJurors(jurors.length);
+        setWaitingJurors((prev) => {
+          if (juryVoteCount > 0 || votedJurors.length > 0) return prev;
+          return jurors;
+        });
       } catch {
         // Keep fallback avatar when status fetch fails.
       }
@@ -197,7 +229,7 @@ export default function HostGame() {
     refreshHostAvatar();
     const iv = setInterval(refreshHostAvatar, 2000);
     return () => clearInterval(iv);
-  }, [roomCode]);
+  }, [roomCode, playerVoteCount, votedPlayers.length, juryVoteCount, votedJurors.length]);
 
   if (!activeDeck || !roomCode) {
     return (
@@ -227,6 +259,11 @@ export default function HostGame() {
     setAnswerPool([]);
     setResultStats(null);
     setJuryVoteCount(0);
+    setPlayerVoteCount(0);
+    setVotedPlayers([]);
+    setWaitingPlayers([]);
+    setVotedJurors([]);
+    setWaitingJurors([]);
     setRoundBreakdown(null);
     setTimerRemaining(null);
     setTimerPaused(false);
@@ -438,7 +475,9 @@ export default function HostGame() {
                   ? "All Done!"
                   : phase === "jury"
                   ? `${juryVoteCount}/${totalJurors} Jurors Voted`
-                  : `${submissions.length}/${totalPlayers} Players Submitted`}
+                  : phase === "answers"
+                    ? `${playerVoteCount}/${totalPlayers} Players Voted`
+                    : `${submissions.length}/${totalPlayers} Players Submitted`}
               </div>
             </div>
           </div>
@@ -713,6 +752,92 @@ export default function HostGame() {
           </section>
         )}
 
+        {phase === "answers" &&
+          playerVoteCount >= totalPlayers &&
+          totalPlayers > 0 && (
+            <section className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 px-5 py-3 shrink-0">
+              <div className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-0.5">
+                All Players Voted
+              </div>
+              <div className="text-sm text-emerald-200/70">
+                All {totalPlayers} players have locked in their choices.
+              </div>
+            </section>
+          )}
+
+        {phase === "answers" && (
+          <section className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-6 shadow-inner space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-1 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  Players Choosing
+                </div>
+                <div className="text-sm font-medium text-indigo-200/80">
+                  Track who has already voted and who is still deciding
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-white">
+                  {playerVoteCount}
+                  <span className="text-indigo-400/60 text-base font-medium">
+                    /{totalPlayers}
+                  </span>
+                </div>
+                <div className="text-xs font-bold uppercase tracking-wider text-indigo-400/60">
+                  votes in
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-3">
+                  Voted
+                </div>
+                {votedPlayers.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {votedPlayers.map((player) => (
+                      <span
+                        key={player}
+                        className="rounded-full border border-emerald-500/30 bg-emerald-900/30 px-3 py-1 text-sm font-semibold text-emerald-100"
+                      >
+                        {player}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-emerald-200/70">
+                    No players have voted yet.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-indigo-500/20 bg-[#0a0523]/40 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-3">
+                  Waiting On
+                </div>
+                {waitingPlayers.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {waitingPlayers.map((player) => (
+                      <span
+                        key={player}
+                        className="rounded-full border border-indigo-500/30 bg-indigo-900/20 px-3 py-1 text-sm font-semibold text-indigo-100"
+                      >
+                        {player}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-indigo-200/70">
+                    Everyone voted!
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {phase === "results" && resultStats && (
           <section className="rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-6 shadow-inner">
             <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-4 flex items-center gap-2">
@@ -759,8 +884,8 @@ export default function HostGame() {
           )}
 
         {phase === "jury" && (
-          <section className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-6 shadow-inner">
-            <div className="flex items-center justify-between">
+          <section className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-6 shadow-inner space-y-5">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-amber-300 mb-1 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
@@ -780,6 +905,52 @@ export default function HostGame() {
                 <div className="text-xs font-bold uppercase tracking-wider text-amber-400/60">
                   votes in
                 </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-3">
+                  Voted
+                </div>
+                {votedJurors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {votedJurors.map((juror) => (
+                      <span
+                        key={juror}
+                        className="rounded-full border border-emerald-500/30 bg-emerald-900/30 px-3 py-1 text-sm font-semibold text-emerald-100"
+                      >
+                        {juror}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-emerald-200/70">
+                    No jurors have voted yet.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-amber-500/20 bg-[#0a0523]/40 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-amber-300 mb-3">
+                  Waiting On
+                </div>
+                {waitingJurors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {waitingJurors.map((juror) => (
+                      <span
+                        key={juror}
+                        className="rounded-full border border-amber-500/30 bg-amber-900/20 px-3 py-1 text-sm font-semibold text-amber-100"
+                      >
+                        {juror}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-amber-200/70">
+                    Everyone voted!
+                  </div>
+                )}
               </div>
             </div>
           </section>
