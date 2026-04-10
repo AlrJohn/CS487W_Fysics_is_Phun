@@ -69,6 +69,7 @@ export default function HostGame() {
   const [playerVoteCount, setPlayerVoteCount] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [totalJurors, setTotalJurors] = useState(0);
+  const [players, setPlayers] = useState([]);
   const [votedPlayers, setVotedPlayers] = useState([]);
   const [waitingPlayers, setWaitingPlayers] = useState([]);
   const [votedJurors, setVotedJurors] = useState([]);
@@ -210,7 +211,23 @@ export default function HostGame() {
         const data = await res.json();
         setHostAvatarUrl(data?.player_avatars?.Host || "");
         const players = Array.isArray(data?.players) ? data.players : [];
+        setPlayers(players);
         setTotalPlayers(players.length);
+        const currentIdx =
+          typeof data?.current_index === "number"
+            ? data.current_index
+            : currentQuestionIndex;
+        const roundSubmissions = Array.isArray(data?.submissions?.[currentIdx])
+          ? data.submissions[currentIdx]
+          : [];
+        const submittedPlayers = [
+          ...new Set(
+            roundSubmissions
+              .filter((entry) => entry?.player && entry?.text !== "No submission")
+              .map((entry) => entry.player),
+          ),
+        ];
+        setSubmissions(submittedPlayers);
         setWaitingPlayers((prev) => {
           if (playerVoteCount > 0 || votedPlayers.length > 0) return prev;
           return players;
@@ -229,7 +246,7 @@ export default function HostGame() {
     refreshHostAvatar();
     const iv = setInterval(refreshHostAvatar, 2000);
     return () => clearInterval(iv);
-  }, [roomCode, playerVoteCount, votedPlayers.length, juryVoteCount, votedJurors.length]);
+  }, [roomCode, currentQuestionIndex, playerVoteCount, votedPlayers.length, juryVoteCount, votedJurors.length]);
 
   if (!activeDeck || !roomCode) {
     return (
@@ -710,25 +727,76 @@ export default function HostGame() {
 
         {/* Phase-specific info panels */}
         {phase === "collecting" && (
-          <section className="rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-5 shadow-inner flex items-center justify-between">
-            <div className="text-sm font-bold text-indigo-200">
-              Waiting for players to submit fakes
-            </div>
-            <div className="flex -space-x-2">
-              {Array.from({ length: Math.min(submissions.length, 5) }).map(
-                (_, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-indigo-600 border-2 border-[#0a0523] animate-pulse"
-                    style={{ animationDelay: `${i * 150}ms`, zIndex: 10 - i }}
-                  ></div>
-                ),
-              )}
-              {submissions.length > 5 && (
-                <div className="w-8 h-8 rounded-full bg-indigo-800 border-2 border-[#0a0523] flex items-center justify-center text-[10px] font-bold text-white">
-                  +{submissions.length - 5}
+          <section className="rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-6 shadow-inner space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-1 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  Collecting Fake Answers
                 </div>
-              )}
+                <div className="text-sm font-medium text-indigo-200/80">
+                  See who has already submitted and who is still typing
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-white">
+                  {submissions.length}
+                  <span className="text-indigo-400/60 text-base font-medium">
+                    /{totalPlayers}
+                  </span>
+                </div>
+                <div className="text-xs font-bold uppercase tracking-wider text-indigo-400/60">
+                  submissions in
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-emerald-300 mb-3">
+                  Submitted
+                </div>
+                {submissions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {submissions.map((player) => (
+                      <span
+                        key={player}
+                        className="rounded-full border border-emerald-500/30 bg-emerald-900/30 px-3 py-1 text-sm font-semibold text-emerald-100"
+                      >
+                        {player}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-emerald-200/70">
+                    No players have submitted yet.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-indigo-500/20 bg-[#0a0523]/40 p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-3">
+                  Waiting On
+                </div>
+                {totalPlayers - submissions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {players
+                      .filter((player) => !submissions.includes(player))
+                      .map((player) => (
+                        <span
+                          key={player}
+                          className="rounded-full border border-indigo-500/30 bg-indigo-900/20 px-3 py-1 text-sm font-semibold text-indigo-100"
+                        >
+                          {player}
+                        </span>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-indigo-200/70">
+                    Everyone submitted!
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}
