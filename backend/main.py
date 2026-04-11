@@ -645,6 +645,12 @@ async def session_ws(websocket: WebSocket, room_code: str):
                         jury_votes.setdefault(idx, {})[juror_name] = {"best": best, "worst": worst}
                         # broadcast vote count to all (host uses it to track progress)
                         await _broadcast(code, _build_jury_vote_progress(sess, idx))
+                        # check if all jurors have voted — end stage and stop timer (like stages 1 & 2)
+                        jurors = sess.get("jurors", [])
+                        voted_jurors = list(jury_votes.get(idx, {}).keys())
+                        if jurors and voted_jurors and set(voted_jurors) >= set(jurors):
+                            await _end_stage(code, 3, "all_submitted")
+                            await _cancel_timer(code)
             elif msg.get("type") == "jury_results":
                 # host requests jury scoring — compute fractional points and broadcast round_scores
                 idx = active_sessions[code].get("current_index")

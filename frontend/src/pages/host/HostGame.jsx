@@ -175,6 +175,7 @@ export default function HostGame() {
             // Only clear the ready banner — phase changes are driven by subsequent messages
             // (e.g. "answers" msg sets phase="answers", "results" msg sets phase="results")
             setStageReadyReason(null);
+            setAllJurorsVoted(false); // Clear jury ready state when transitioning
             setTimerStatus("idle");
           } else if (msg.type === "skip_question") {
             setCurrentQuestionIndex((prev) =>
@@ -595,9 +596,11 @@ export default function HostGame() {
               Stage {currentStage} Complete
             </div>
             <div className="text-sm text-amber-200/70">
-              {stageReadyReason === "timeout"
-                ? "Time expired."
-                : "All players submitted."}{" "}
+              {phase === "jury"
+                ? "All jurors have voted."
+                : stageReadyReason === "timeout"
+                  ? "Time expired."
+                  : "All players submitted."}{" "}
               Use the button below to advance.
             </div>
           </section>
