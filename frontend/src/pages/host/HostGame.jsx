@@ -546,31 +546,65 @@ export default function HostGame() {
           )}
         </section>
 
-        {/* Question Display */}
-        <section className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 backdrop-blur-md p-8 md:p-12 flex-grow flex flex-col justify-center relative">
+        <section
+          className={`rounded-2xl border border-indigo-500/30 bg-indigo-950/20 backdrop-blur-md p-8 md:p-12 flex-grow relative ${
+            phase === "answers" ? "" : "flex flex-col justify-center"
+          }`}
+        >
           <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-indigo-500/40 rounded-tl-2xl m-2 opacity-50"></div>
           <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-purple-500/40 rounded-br-2xl m-2 opacity-50"></div>
 
-          <div className="mb-8 text-center max-w-3xl mx-auto w-full z-10">
-            <div className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4 flex items-center justify-center gap-2">
-              <span className="w-8 h-px bg-indigo-500/40"></span>
-              Current Question
-              <span className="w-8 h-px bg-indigo-500/40"></span>
-            </div>
-            <div className="text-3xl md:text-4xl font-black text-white leading-tight break-words drop-shadow-md">
-              {currentQuestion.Question_Text || "(No question text)"}
-            </div>
-          </div>
+          <div
+            className={`relative z-10 ${
+              phase === "answers"
+                ? "grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)] lg:items-stretch"
+                : ""
+            }`}
+          >
+            <div className={phase === "answers" ? "flex flex-col justify-center min-w-0" : ""}>
+              <div className="mb-8 text-center max-w-3xl mx-auto w-full">
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-4 flex items-center justify-center gap-2">
+                  <span className="w-8 h-px bg-indigo-500/40"></span>
+                  Current Question
+                  <span className="w-8 h-px bg-indigo-500/40"></span>
+                </div>
+                <div className="text-3xl md:text-4xl font-black text-white leading-tight break-words drop-shadow-md">
+                  {currentQuestion.Question_Text || "(No question text)"}
+                </div>
+              </div>
 
-          {currentQuestion.Image_Link && (
-            <div className="mb-8 rounded-xl overflow-hidden border border-indigo-500/30 bg-[#0a0523]/60 mx-auto max-w-2xl relative z-10">
-              <img
-                src={getImageUrl(currentQuestion.Image_Link)}
-                alt="Question media"
-                className="w-full max-h-[400px] object-contain"
-              />
+              {currentQuestion.Image_Link && (
+                <div className="mb-8 rounded-xl overflow-hidden border border-indigo-500/30 bg-[#0a0523]/60 mx-auto max-w-2xl relative">
+                  <img
+                    src={getImageUrl(currentQuestion.Image_Link)}
+                    alt="Question media"
+                    className="w-full max-h-[400px] object-contain"
+                  />
+                </div>
+              )}
             </div>
-          )}
+
+            {phase === "answers" && (
+              <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-5 shadow-inner min-h-[260px] lg:max-h-[440px] flex flex-col">
+                <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-4 flex items-center gap-2 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                  Answers shown to players
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                  <div className="flex flex-col gap-3">
+                    {answerPool.map((ans, i) => (
+                      <div
+                        key={i}
+                        className="bg-[#0a0523]/60 border border-indigo-500/30 text-indigo-100 px-4 py-3 rounded-lg text-sm font-medium shadow-sm whitespace-normal break-words"
+                      >
+                        {ans}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Correct Answer only (results + jury + roundLeaderboard phases) */}
           {(phase === "results" ||
@@ -800,25 +834,6 @@ export default function HostGame() {
                   </div>
                 )}
               </div>
-            </div>
-          </section>
-        )}
-
-        {phase === "answers" && (
-          <section className="rounded-xl border border-indigo-500/20 bg-indigo-950/30 p-6 shadow-inner">
-            <div className="text-xs font-bold uppercase tracking-widest text-indigo-300 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-              Answers shown to players
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {answerPool.map((ans, i) => (
-                <div
-                  key={i}
-                  className="bg-[#0a0523]/60 border border-indigo-500/30 text-indigo-100 px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
-                >
-                  {ans}
-                </div>
-              ))}
             </div>
           </section>
         )}
