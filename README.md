@@ -6,7 +6,7 @@ By: Wilson Quilli, Aland Adili, Colin Shields, Jonathan Alavez Reyes, Laurence O
 ### Contents
 - [Usage](https://github.com/AlrJohn/CS487W_Fysics_is_Phun/edit/main/README.md#usage)
 - [Overview](https://github.com/AlrJohn/CS487W_Fysics_is_Phun/edit/main/README.md#overview)
-<hr><br><br>
+<hr>
 
 # Usage
 
@@ -18,32 +18,33 @@ By: Wilson Quilli, Aland Adili, Colin Shields, Jonathan Alavez Reyes, Laurence O
 Ensure you have [Python](https://www.python.org/downloads/) and [Node.js](https://nodejs.org/en/download) installed.
 
 ### Clone the repository
+Execute the following commands in Git Bash, Git CLI, or similar:
 ```terminal
 git clone https://github.com/AlrJohn/CS487W_Fysics_is_Phun
 cd CS487W_Fysics_is_Phun
 ```
 
 ### Backend
-
+Execute the following in an IDE or Python IDLE:
 ```terminal
 cd backend
 ```
 
-Set up virtual environment:
+Set up a virtual environment using your IDE or run this command in the terminal:
 ```terminal
 python -m venv venv
 ```
 
-- On windows: 
+- On Windows, execute: 
   ```terminal
   venv\Scripts\activate
   ```
-- On Linux/macOS:
+- On Linux/macOS, execute:
   ```terminal
   source venv/bin/activate
   ```
 
-Install dependencies:
+Install dependencies (if not automatically installed):
 ```terminal
 pip install -r requirements.txt
 ```
@@ -52,10 +53,10 @@ Start the app backend:
 ```terminal
 uvicorn main:app --reload
 ```
-Take note of the address it uses. You may have to specify a port if you are running other applications.
+**Important**: Take note of the address it uses. You may have to specify a port if you are running other applications.
 
 ### Frontend
-
+In a different terminal instance, execute:
 ```terminal
 cd ./frontend
 ```
@@ -78,8 +79,7 @@ npm run dev
 ```
 
 The website should now be running locally on your machine.
-<hr><br><br>
-
+<hr>
 
 # Overview
 Project Type: Web-based classroom game system
@@ -87,6 +87,12 @@ Project Type: Web-based classroom game system
 Primary Goal: Automate gameplay and scoring with minimal host interaction, while keeping stage progression host-controlled (Host clicks Next).
 
 Stakeholder: Michael Kagan, PhD, Associate Professor of Physics, Pennsylvania State University.
+
+## Tools and Tech Stack
+- Frontend: React, HTML/CSS responsive design, fetch for API calls
+- Backend: Python (WebSocket and server timer)
+- Storage: Remote CSV decks; in-memory session state
+- Deployment: External server hosting for backend and frontend using Vercel
 
 ## Team Members and Roles
 - Everybody: Project Lead + Requirements Owner (shared responsibility)
@@ -156,9 +162,3 @@ Joins via link/QR; Stage 1 submits one fake answer (validated, editable until ti
 
 Juror (Evaluation & Voting):
 Joins via link/QR; Stage 3 votes Best Fake (mandatory) and optionally Worst Fake, awarding or deducting fractional points. Views round results and final leaderboard.
-
-## Tools and Tech Stack
-- Frontend: React, HTML/CSS responsive design, fetch for API calls
-- Backend: Python (WebSocket and server timer)
-- Storage: Remote CSV decks; in-memory session state
-- Deployment: External server hosting for backend and frontend using Vercel
